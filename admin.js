@@ -2,20 +2,12 @@
 // PAINEL ADMINISTRATIVO - JAVASCRIPT
 // ============================================
 
-// Dados simulados
-let clientes = [
-    { id: 1, nome: 'Edmar alves taveira', cpf: '07080774802', telefone: '(35) 99833-0100', email: 'edmar@email.com', dataCadastro: '20/01/2026, 22:50:18', acesso: 'Neguin', status: 'LIBERADO' },
-    { id: 2, nome: 'JACQUES Sebastião gonzaga', cpf: '88364313649', telefone: '(37) 99903-1497', email: 'jacques@email.com', dataCadastro: '20/01/2026, 21:43:09', acesso: 'Vini.jr', status: 'LIBERADO' },
-    { id: 3, nome: 'Eduardo Luiz Pereira', cpf: '11272285871', telefone: '(55) 11992-0115', email: 'eduardo@email.com', dataCadastro: '20/01/2026, 20:07:08', acesso: '', status: 'PENDENTE' },
-    { id: 4, nome: 'Sergio Pedrosa dos Santos', cpf: '07907236894', telefone: '(11) 94787-1758', email: 'sergio@email.com', dataCadastro: '20/01/2026, 19:44:06', acesso: 'JPacesso2026', status: 'LIBERADO' },
-    { id: 5, nome: 'Ronildo Oliveira dos Santos', cpf: '33653526272', telefone: '(11) 97376-2245', email: 'ronildo@email.com', dataCadastro: '20/01/2026, 19:07:17', acesso: '', status: 'PENDENTE' },
-];
+// API
+const API_URL = 'https://api.testandoapp.com';
 
-let instalacoes = [
-    { id: 1, cliente: 'Fernando Ferreira da Mota', email: 'fmofold@gmail.com', instalador: 'JPacesso2026', banco: 'link-sem', dataInstalacao: '20/01/2026, 15:14:30', ultimoAcesso: '20/01/2026, 15:14:30', status: 'LINK SEM' },
-    { id: 2, cliente: 'João Silva', email: 'joao@email.com', instalador: 'Vini.jr', banco: 'bradesco', dataInstalacao: '19/01/2026, 10:30:00', ultimoAcesso: '20/01/2026, 09:15:00', status: 'ATIVO' },
-    { id: 3, cliente: 'Maria Santos', email: 'maria@email.com', instalador: 'Neguin', banco: 'link-sem', dataInstalacao: '18/01/2026, 14:20:00', ultimoAcesso: '20/01/2026, 11:45:00', status: 'ATIVO' },
-];
+// Dados (carregados da API)
+let clientes = [];
+let instalacoes = [];
 
 let currentPage = 'clientes';
 let currentInstalacao = null;
@@ -23,10 +15,7 @@ let autoRefreshEnabled = false;
 let autoRefreshInterval = null;
 const AUTO_REFRESH_INTERVAL = 5000; // 5 segundos
 
-let notificacoes = [
-    { id: 1, euia: '40a08014-da20-4213-a367-2e08eeea07697', instalacao: 'inst-1', titulo: 'Atualizacao de endereco!', mensagem: 'Abra o app e faca sua atualizacao de endereco e garanta as melhores vagas perto de voce!', status: 'associado', data: '20/01/2026, 14:43:07', evento: 'atualizar_endereco' },
-    { id: 2, euia: '50b18125-eb31-5324-b478-3f19ffb18808', instalacao: 'inst-2', titulo: 'Novas vagas disponiveis!', mensagem: 'Confira as novas oportunidades de emprego perto de voce!', status: 'enviado', data: '19/01/2026, 10:20:00', evento: 'nova_vaga' },
-];
+let notificacoes = [];
 
 let operadores = [
     { id: 1, nome: 'Wd520', tipo: 'Operador', usuarios: [
@@ -38,22 +27,148 @@ let operadores = [
     ]}
 ];
 
-let documentos = [
-    { id: 1, euia: '08deef2-4d8e-404b-ab75-5771b0733a9b', cliente: 'Edmar alves taveira', data: '12/01/2026, 13:23:26', arquivo: 'documento_1.pdf', descricao: 'Documento de identidade' },
-    { id: 2, euia: '19efff3-5e9f-515c-bc86-6882c1844ba0', cliente: 'JACQUES Sebastiao gonzaga', data: '11/01/2026, 14:15:30', arquivo: 'documento_2.pdf', descricao: 'Comprovante de endereco' },
-    { id: 3, euia: '20fggg4-6fag-626d-cd97-7993d2955cb1', cliente: 'Eduardo Luiz Pereira', data: '10/01/2026, 10:45:00', arquivo: 'documento_3.pdf', descricao: 'Comprovante de renda' },
-];
+let documentos = [];
+
+async function apiRequest(path, options = {}) {
+    const response = await fetch(`${API_URL}${path}`, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`${response.status} ${text}`);
+    }
+
+    if (response.status === 204) {
+        return null;
+    }
+
+    return response.json();
+}
+
+function handleApiError(error, mensagem, showAlert = true) {
+    console.error(mensagem, error);
+    if (showAlert) {
+        alert(mensagem);
+    }
+}
+
+function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString('pt-BR');
+}
+
+function parseInstalacaoId(value) {
+    if (!value) return null;
+    if (value.startsWith('inst-')) {
+        const id = parseInt(value.replace('inst-', ''), 10);
+        return Number.isNaN(id) ? null : id;
+    }
+    const rawId = parseInt(value, 10);
+    return Number.isNaN(rawId) ? null : rawId;
+}
+
+function updateInstalacaoOptions() {
+    const select = document.getElementById('form-notif-instalacao');
+    if (!select) return;
+
+    const options = ['<option value="">Selecione uma instalacao</option>'];
+    instalacoes.forEach((inst) => {
+        options.push(`<option value="inst-${inst.id}">${inst.cliente}</option>`);
+    });
+    select.innerHTML = options.join('');
+}
+
+async function loadClientes(showAlert = true) {
+    try {
+        const data = await apiRequest('/api/clientes');
+        clientes = data.map((cliente) => ({
+            id: cliente.id,
+            nome: cliente.nome,
+            cpf: cliente.cpf,
+            telefone: cliente.telefone,
+            email: cliente.email,
+            dataCadastro: formatDate(cliente.data_cadastro),
+            acesso: cliente.acesso || '',
+            status: (cliente.status || 'PENDENTE').toUpperCase()
+        }));
+        renderClientes();
+    } catch (error) {
+        handleApiError(error, 'Erro ao carregar clientes.', showAlert);
+    }
+}
+
+async function loadInstalacoes(showAlert = true) {
+    try {
+        const data = await apiRequest('/api/instalacoes');
+        instalacoes = data.map((inst) => ({
+            id: inst.id,
+            cliente: inst.cliente_nome || 'Não informado',
+            email: inst.email || '-',
+            instalador: inst.instalador || '-',
+            banco: inst.banco || 'link-sem',
+            dataInstalacao: formatDate(inst.data_instalacao),
+            ultimoAcesso: formatDate(inst.ultimo_acesso),
+            status: (inst.status || 'ATIVO').toUpperCase()
+        }));
+        renderInstalacoes();
+        updateInstalacaoOptions();
+    } catch (error) {
+        handleApiError(error, 'Erro ao carregar instalacoes.', showAlert);
+    }
+}
+
+async function loadNotificacoes(showAlert = true) {
+    try {
+        const data = await apiRequest('/api/notificacoes');
+        notificacoes = data.map((notif) => ({
+            id: notif.id,
+            euia: `notif-${notif.id}`,
+            instalacao: `inst-${notif.instalacao_id}`,
+            titulo: notif.titulo,
+            mensagem: notif.mensagem,
+            status: (notif.status || 'associado').toUpperCase(),
+            data: formatDate(notif.data_envio),
+            evento: notif.nome_evento,
+            urlImagem: notif.url_imagem || ''
+        }));
+        renderNotificacoes();
+    } catch (error) {
+        handleApiError(error, 'Erro ao carregar notificacoes.', showAlert);
+    }
+}
+
+async function loadDocumentos(showAlert = true) {
+    try {
+        const data = await apiRequest('/api/documentos');
+        documentos = data.map((doc) => ({
+            id: doc.id,
+            euia: `doc-${doc.id}`,
+            cliente: doc.cliente_nome || 'Não informado',
+            data: formatDate(doc.data_upload),
+            arquivo: doc.nome_arquivo || 'documento',
+            descricao: doc.descricao || '',
+            urlArquivo: doc.url_arquivo || ''
+        }));
+        renderDocumentos();
+    } catch (error) {
+        handleApiError(error, 'Erro ao carregar documentos.', showAlert);
+    }
+}
 
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    renderClientes();
-    renderInstalacoes();
-    renderNotificacoes();
+    loadClientes();
+    loadInstalacoes();
+    loadNotificacoes();
     renderOperadores();
-    renderDocumentos();
+    loadDocumentos();
 });
 
 // ============================================
@@ -88,15 +203,15 @@ function stopAutoRefresh() {
 
 function refreshCurrentPage() {
     if (currentPage === 'clientes') {
-        renderClientes();
+        loadClientes(false);
     } else if (currentPage === 'instalacoes') {
-        renderInstalacoes();
+        loadInstalacoes(false);
     } else if (currentPage === 'notificacoes') {
-        renderNotificacoes();
+        loadNotificacoes(false);
     } else if (currentPage === 'funcionarios') {
         renderOperadores();
     } else if (currentPage === 'documentos') {
-        renderDocumentos();
+        loadDocumentos(false);
     }
 }
 
@@ -189,48 +304,61 @@ function createCliente() {
     document.getElementById('modal-cliente').classList.add('active');
 }
 
-function saveCliente(event) {
+async function saveCliente(event) {
     event.preventDefault();
 
     const nome = document.getElementById('form-nome').value;
     const cpf = document.getElementById('form-cpf').value;
     const telefone = document.getElementById('form-telefone').value;
     const email = document.getElementById('form-email').value;
+    const senha = `Acesso${Math.random().toString(36).slice(2, 10)}`;
 
-    const novoCliente = {
-        id: clientes.length + 1,
-        nome,
-        cpf,
-        telefone,
-        email,
-        dataCadastro: new Date().toLocaleString('pt-BR'),
-        acesso: '',
-        status: 'PENDENTE'
-    };
-
-    clientes.push(novoCliente);
-    renderClientes();
-    closeModal('modal-cliente');
-    alert('Cliente criado com sucesso!');
-}
-
-function liberarAcesso(clienteId) {
-    const cliente = clientes.find(c => c.id === clienteId);
-    if (cliente) {
-        // Gerar credencial de acesso aleatória
-        const credenciais = ['JPacesso2026', 'Vini.jr', 'Neguin', 'Acesso' + Math.random().toString(36).substr(2, 9)];
-        cliente.acesso = credenciais[Math.floor(Math.random() * credenciais.length)];
-        cliente.status = 'LIBERADO';
-        renderClientes();
-        alert(`Acesso liberado! Credencial: ${cliente.acesso}`);
+    try {
+        await apiRequest('/api/clientes', {
+            method: 'POST',
+            body: JSON.stringify({ nome, cpf, telefone, email, senha })
+        });
+        await loadClientes();
+        closeModal('modal-cliente');
+        alert('Cliente criado com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao criar cliente.');
     }
 }
 
-function deleteCliente(clienteId) {
-    if (confirm('Tem certeza que deseja deletar este cliente?')) {
-        clientes = clientes.filter(c => c.id !== clienteId);
+async function liberarAcesso(clienteId) {
+    try {
+        const response = await apiRequest(`/api/clientes/${clienteId}/liberar`, {
+            method: 'POST'
+        });
+        const clienteAtualizado = response.cliente;
+        clientes = clientes.map((cliente) => (
+            cliente.id === clienteId
+                ? {
+                    ...cliente,
+                    acesso: clienteAtualizado.acesso || cliente.acesso,
+                    status: (clienteAtualizado.status || cliente.status).toUpperCase()
+                }
+                : cliente
+        ));
         renderClientes();
+        alert(`Acesso liberado! Credencial: ${clienteAtualizado.acesso}`);
+    } catch (error) {
+        handleApiError(error, 'Erro ao liberar acesso.');
+    }
+}
+
+async function deleteCliente(clienteId) {
+    if (!confirm('Tem certeza que deseja deletar este cliente?')) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/clientes/${clienteId}`, { method: 'DELETE' });
+        await loadClientes();
         alert('Cliente deletado com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao deletar cliente.');
     }
 }
 
@@ -239,18 +367,24 @@ function selectAll(checkbox) {
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
 }
 
-function deleteSelected() {
+async function deleteSelected() {
     const selected = document.querySelectorAll('.row-checkbox:checked');
     if (selected.length === 0) {
         alert('Selecione pelo menos um cliente!');
         return;
     }
 
-    if (confirm(`Tem certeza que deseja deletar ${selected.length} cliente(s)?`)) {
-        const ids = Array.from(selected).map(cb => parseInt(cb.value));
-        clientes = clientes.filter(c => !ids.includes(c.id));
-        renderClientes();
+    if (!confirm(`Tem certeza que deseja deletar ${selected.length} cliente(s)?`)) {
+        return;
+    }
+
+    try {
+        const ids = Array.from(selected).map(cb => parseInt(cb.value, 10));
+        await Promise.all(ids.map((id) => apiRequest(`/api/clientes/${id}`, { method: 'DELETE' })));
+        await loadClientes();
         alert('Cliente(s) deletado(s) com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao deletar clientes.');
     }
 }
 
@@ -508,7 +642,7 @@ function openModalNotificacao() {
     document.getElementById('modal-notificacao').classList.add('active');
 }
 
-function saveNotificacao(event) {
+async function saveNotificacao(event) {
     event.preventDefault();
 
     const instalacao = document.getElementById('form-notif-instalacao').value;
@@ -522,21 +656,29 @@ function saveNotificacao(event) {
         return;
     }
 
-    const novaNotificacao = {
-        id: notificacoes.length + 1,
-        euia: 'notif-' + Math.random().toString(36).substr(2, 9),
-        instalacao,
-        titulo,
-        mensagem,
-        status: 'associado',
-        data: new Date().toLocaleString('pt-BR'),
-        evento
-    };
+    const instalacaoId = parseInstalacaoId(instalacao);
+    if (!instalacaoId) {
+        alert('Instalacao invalida!');
+        return;
+    }
 
-    notificacoes.push(novaNotificacao);
-    renderNotificacoes();
-    closeModal('modal-notificacao');
-    alert('Notificacao criada com sucesso!');
+    try {
+        await apiRequest('/api/notificacoes', {
+            method: 'POST',
+            body: JSON.stringify({
+                instalacao_id: instalacaoId,
+                titulo,
+                mensagem,
+                url_imagem: imagem,
+                nome_evento: evento
+            })
+        });
+        await loadNotificacoes();
+        closeModal('modal-notificacao');
+        alert('Notificacao criada com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao criar notificacao.');
+    }
 }
 
 function editNotificacao(notifId) {
@@ -682,7 +824,7 @@ function openModalDocumento() {
     document.getElementById('modal-documento').classList.add('active');
 }
 
-function saveDocumento(event) {
+async function saveDocumento(event) {
     event.preventDefault();
 
     const cliente = document.getElementById('form-doc-cliente').value;
@@ -694,19 +836,28 @@ function saveDocumento(event) {
         return;
     }
 
-    const novoDocumento = {
-        id: documentos.length + 1,
-        euia: 'doc-' + Math.random().toString(36).substr(2, 9),
-        cliente,
-        data: new Date().toLocaleString('pt-BR'),
-        arquivo: arquivo.split('\\').pop(),
-        descricao
-    };
+    const clienteMatch = clientes.find((c) => c.nome.toLowerCase() === cliente.toLowerCase());
+    if (!clienteMatch) {
+        alert('Cliente nao encontrado. Verifique o nome.');
+        return;
+    }
 
-    documentos.push(novoDocumento);
-    renderDocumentos();
-    closeModal('modal-documento');
-    alert('Documento adicionado com sucesso!');
+    try {
+        await apiRequest('/api/documentos', {
+            method: 'POST',
+            body: JSON.stringify({
+                cliente_id: clienteMatch.id,
+                nome_arquivo: arquivo.split('\\').pop(),
+                descricao,
+                url_arquivo: ''
+            })
+        });
+        await loadDocumentos();
+        closeModal('modal-documento');
+        alert('Documento adicionado com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao adicionar documento.');
+    }
 }
 
 function editarDocumento(docId) {
@@ -727,7 +878,12 @@ function excluirDocumento(docId) {
 }
 
 function downloadDocumento(nomeArquivo) {
-    alert('Download do arquivo: ' + nomeArquivo);
+    const documento = documentos.find((doc) => doc.arquivo === nomeArquivo);
+    if (documento && documento.urlArquivo) {
+        window.open(documento.urlArquivo, '_blank');
+        return;
+    }
+    alert('Download indisponivel. Arquivo nao possui URL.');
 }
 
 function selectAllDocs(checkbox) {
