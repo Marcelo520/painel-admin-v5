@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAINEL ADMINISTRATIVO - RH Recruta</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container-main">
+        <!-- Menu Lateral -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-admin">PA</div>
+                <h2>Painel Admin</h2>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <h3>Operação</h3>
+                    <ul>
+                        <li><a href="#" onclick="showPage('clientes')" class="nav-link active">Clientes</a></li>
+                        <li><a href="#" onclick="showPage('instalacoes')" class="nav-link">Instalações</a></li>
+                        <li><a href="#" onclick="showPage('codigo-c6')" class="nav-link">Código C6</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Arquivo</h3>
+                    <ul>
+                        <li><a href="#" onclick="showPage('documentos')" class="nav-link">Documentos</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Comunicação</h3>
+                    <ul>
+                        <li><a href="#" onclick="showPage('notificacoes')" class="nav-link">Push Notifications</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Administração</h3>
+                    <ul>
+                        <li><a href="#" onclick="showPage('funcionarios')" class="nav-link">Funcionários</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn-logout" onclick="logout()">Sair</button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="btn-menu" onclick="toggleSidebar()">☰</button>
+                    <h1 id="page-title">Clientes</h1>
+                </div>
+                <div class="header-right">
+                    <button class="btn-icon" id="auto-refresh-btn" title="Auto-atualizar" onclick="toggleAutoRefresh()">🔄</button>
+                    <button class="btn-icon" title="Tema">🌙</button>
+                    <button class="btn-icon" title="Perfil">👤</button>
+                    <span class="user-info">Bem-vindo, Wd520 (Operador)</span>
+                </div>
+            </header>
+
+            <!-- Páginas -->
+            <div class="pages-container">
+                <!-- Página Clientes -->
+                <div id="page-clientes" class="page active">
+                    <div class="page-header">
+                        <div class="toolbar">
+                            <button class="btn btn-primary" onclick="createCliente()">+ Novo Cliente</button>
+                            <button class="btn btn-secondary" onclick="exportData('clientes')">Exportar</button>
+                            <button class="btn btn-secondary" onclick="deleteSelected()">Deletar Selecionados</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all" onchange="selectAll(this)"></th>
+                                    <th onclick="sortTable('nome')">Nome ▼</th>
+                                    <th onclick="sortTable('cpf')">CPF ▼</th>
+                                    <th onclick="sortTable('telefone')">Telefone ▼</th>
+                                    <th>Data Cadastro</th>
+                                    <th>Acesso</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientes-tbody">
+                                <!-- Dados dinâmicos aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Página Instalações -->
+                <div id="page-instalacoes" class="page">
+                    <div class="page-header">
+                        <div class="filters">
+                            <input type="text" placeholder="Buscar (cliente, email, instalador, link, banco...)" class="search-input" id="search-instalacoes" onkeyup="filterInstalacoes()">
+                            <select class="filter-select" id="filter-banco" onchange="filterInstalacoes()">
+                                <option value="">Banco: Todos</option>
+                                <option value="link-sem">Link Sem</option>
+                                <option value="bradesco">Bradesco</option>
+                            </select>
+                            <select class="filter-select" id="filter-status" onchange="filterInstalacoes()">
+                                <option value="">Status: Todos</option>
+                                <option value="ativo">Ativo</option>
+                                <option value="inativo">Inativo</option>
+                            </select>
+                            <button class="btn btn-secondary" onclick="exportData('instalacoes')">Exportar</button>
+                        </div>
+                    </div>
+
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <span class="stat-label">Total</span>
+                            <span class="stat-value" id="stat-total">0</span>
+                        </div>
+                        <div class="stat-card stat-active">
+                            <span class="stat-label">Ativos</span>
+                            <span class="stat-value" id="stat-ativos">0</span>
+                        </div>
+                        <div class="stat-card stat-inactive">
+                            <span class="stat-label">Inativos</span>
+                            <span class="stat-value" id="stat-inativos">0</span>
+                        </div>
+                        <div class="stat-card stat-warning">
+                            <span class="stat-label">Link Sem</span>
+                            <span class="stat-value" id="stat-link-sem">0</span>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>E-mail</th>
+                                    <th>Instalador</th>
+                                    <th>Banco</th>
+                                    <th>Instalado em</th>
+                                    <th>Último Acesso</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="instalacoes-tbody">
+                                <!-- Dados dinâmicos aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Página Detalhe Instalação -->
+                <div id="page-detalhe-instalacao" class="page">
+                    <div class="back-button">
+                        <button class="btn-back" onclick="showPage('instalacoes')">← Voltar</button>
+                    </div>
+
+                    <div class="detail-container">
+                        <div class="detail-left">
+                            <div class="info-group">
+                                <label>ID da Instalação</label>
+                                <input type="text" id="detail-id-instalacao" readonly class="input-readonly">
+                            </div>
+
+                            <div class="info-group">
+                                <label>ID do Cliente</label>
+                                <input type="text" id="detail-id-cliente" readonly class="input-readonly">
+                            </div>
+
+                            <div class="section-title">Link Real</div>
+                            <div class="info-group">
+                                <label>URL do Link</label>
+                                <input type="text" id="detail-link-url" placeholder="URL que o cliente veria no APK">
+                            </div>
+
+                            <div class="info-group">
+                                <label>Status</label>
+                                <select id="detail-link-status">
+                                    <option value="em-progresso">Em Progresso</option>
+                                    <option value="ativo">Ativo</option>
+                                    <option value="inativo">Inativo</option>
+                                </select>
+                            </div>
+
+                            <div class="toggle-group">
+                                <label>Ativador de Emparelhar</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="detail-toggle-emparelhar">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="section-title">Documentos</div>
+                            <div class="document-section">
+                                <div class="document-status" id="document-status">❌</div>
+                                <div class="document-actions">
+                                    <button class="btn btn-primary" onclick="requestDocument()">Solicitar Documento</button>
+                                    <button class="btn btn-secondary" onclick="approveDocument()">Aprovar</button>
+                                    <button class="btn btn-secondary" onclick="rejectDocument()">Rejeitar</button>
+                                </div>
+                            </div>
+
+                            <div class="section-title">Responsáveis</div>
+                            <div class="info-group">
+                                <label>Operador</label>
+                                <input type="text" id="detail-operador" placeholder="Não informado">
+                            </div>
+
+                            <div class="info-group">
+                                <label>Instalador</label>
+                                <input type="text" id="detail-instalador" placeholder="Não informado">
+                            </div>
+
+                            <button class="btn btn-success" onclick="saveDetail()">Salvar</button>
+                        </div>
+
+                        <div class="detail-right">
+                            <div class="info-card">
+                                <span class="card-label">Instalador</span>
+                                <span class="card-value" id="detail-card-instalador">-</span>
+                            </div>
+
+                            <div class="info-card">
+                                <span class="card-label">Operador</span>
+                                <span class="card-value" id="detail-card-operador">-</span>
+                            </div>
+
+                            <div class="info-card">
+                                <span class="card-label">Último Acesso</span>
+                                <span class="card-value" id="detail-card-acesso">-</span>
+                            </div>
+
+                            <div class="info-card">
+                                <span class="card-label">Status</span>
+                                <span class="card-value" id="detail-card-status">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="history-section">
+                        <h3>Histórico de Atividades</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Data / Hora</th>
+                                    <th>Ação</th>
+                                    <th>Detalhes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-tbody">
+                                <!-- Histórico dinâmico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Páginas Placeholder -->
+                <div id="page-codigo-c6" class="page">
+                    <h2>Código C6</h2>
+                    <p>Página em desenvolvimento...</p>
+                </div>
+
+                <!-- Página Documentos Coletados -->
+                <div id="page-documentos" class="page">
+                    <div class="page-header">
+                        <div class="toolbar">
+                            <button class="btn btn-primary" onclick="openModalDocumento()">+ Criar</button>
+                            <button class="btn btn-secondary" onclick="exportData('documentos')">Exportar</button>
+                            <button class="btn btn-secondary" onclick="deleteSelectedDocs()">Deletar Selecionados</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all-docs" onchange="selectAllDocs(this)"></th>
+                                    <th onclick="sortDocumentos('euia')">EU IA ▲</th>
+                                    <th onclick="sortDocumentos('cliente')">Cliente ▲</th>
+                                    <th onclick="sortDocumentos('data')">Data de envio ▲</th>
+                                    <th>Arquivo</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="documentos-tbody">
+                                <!-- Dados dinâmicos aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Página Notificações Push -->
+                <div id="page-notificacoes" class="page">
+                    <div class="page-header">
+                        <div class="toolbar">
+                            <button class="btn btn-primary" onclick="openModalNotificacao()">+ Criar</button>
+                            <button class="btn btn-secondary" onclick="exportData('notificacoes')">Exportar</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all-notif" onchange="selectAllNotif(this)"></th>
+                                    <th>EU IA</th>
+                                    <th>Instalação</th>
+                                    <th>Título</th>
+                                    <th>Mensagem</th>
+                                    <th>Status</th>
+                                    <th onclick="sortNotificacoes('data')">Enviada em ▼</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="notificacoes-tbody">
+                                <!-- Dados dinâmicos aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Página Administração -->
+                <div id="page-funcionarios" class="page">
+                    <div class="page-header">
+                        <div class="toolbar">
+                            <button class="btn btn-primary" onclick="openModalOperador()">+ Criar</button>
+                            <button class="btn btn-secondary" onclick="exportData('operadores')">Exportar</button>
+                        </div>
+                    </div>
+
+                    <div class="operadores-container">
+                        <div id="operadores-list">
+                            <!-- Operadores dinâmicos aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para criar/editar cliente -->
+    <div id="modal-cliente" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal-cliente')">&times;</span>
+            <h2>Novo Cliente</h2>
+            <form onsubmit="saveCliente(event)">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" id="form-nome" required>
+                </div>
+                <div class="form-group">
+                    <label>CPF</label>
+                    <input type="text" id="form-cpf" required>
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <input type="text" id="form-telefone" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="form-email" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para criar/editar notificacao -->
+    <div id="modal-notificacao" class="modal">
+        <div class="modal-content modal-notificacao">
+            <span class="close" onclick="closeModal('modal-notificacao')">&times;</span>
+            <h2>Criar Notificacao Push</h2>
+            <form onsubmit="saveNotificacao(event)">
+                <div class="form-group">
+                    <label>Instalacao *</label>
+                    <select id="form-notif-instalacao" required>
+                        <option value="">Selecione uma instalacao</option>
+                        <option value="inst-1">Fernando Ferreira da Mota</option>
+                        <option value="inst-2">Joao Silva</option>
+                        <option value="inst-3">Maria Santos</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Titulo da Notificacao *</label>
+                    <input type="text" id="form-notif-titulo" placeholder="Titulo da Notificacao" required>
+                </div>
+                <div class="form-group">
+                    <label>Mensagem *</label>
+                    <textarea id="form-notif-mensagem" placeholder="Mensagem" rows="6" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>URL da Imagem (opcional)</label>
+                    <input type="text" id="form-notif-imagem" placeholder="URL da Imagem (opcional)">
+                </div>
+                <div class="form-group">
+                    <label>Nome do Evento *</label>
+                    <input type="text" id="form-notif-evento" placeholder="Nome do Evento" required>
+                </div>
+                <button type="submit" class="btn btn-success">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para criar/editar operador -->
+    <div id="modal-operador" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal-operador')">&times;</span>
+            <h2>Criar Novo Operador</h2>
+            <form onsubmit="saveOperador(event)">
+                <div class="form-group">
+                    <label>Conecte-se *</label>
+                    <input type="text" id="form-op-conecte" placeholder="Conecte-se" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha *</label>
+                    <input type="password" id="form-op-senha" placeholder="Senha" required>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Funcao *</label>
+                    <select id="form-op-tipo" required>
+                        <option value="">Selecione um tipo</option>
+                        <option value="Operador">Operador</option>
+                        <option value="Instalador">Instalador</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para criar/editar documento -->
+    <div id="modal-documento" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal-documento')">&times;</span>
+            <h2>Novo Documento</h2>
+            <form onsubmit="saveDocumento(event)">
+                <div class="form-group">
+                    <label>Cliente *</label>
+                    <input type="text" id="form-doc-cliente" placeholder="Nome do cliente" required>
+                </div>
+                <div class="form-group">
+                    <label>Arquivo *</label>
+                    <input type="file" id="form-doc-arquivo" required>
+                </div>
+                <div class="form-group">
+                    <label>Descricao (opcional)</label>
+                    <textarea id="form-doc-descricao" placeholder="Descricao do documento" rows="4"></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
