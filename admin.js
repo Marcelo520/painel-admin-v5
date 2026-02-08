@@ -18,15 +18,7 @@ const AUTO_REFRESH_INTERVAL = 5000; // 5 segundos
 
 let notificacoes = [];
 
-let operadores = [
-    { id: 1, nome: 'Wd520', tipo: 'Operador', usuarios: [
-        { id: 1, conecte: 'JPacesso2026', tipo: 'Instalador' },
-        { id: 2, conecte: 'Menorj', tipo: 'Instalador' }
-    ]},
-    { id: 2, nome: 'Vini.jr', tipo: 'Operador', usuarios: [
-        { id: 3, conecte: 'Neguin', tipo: 'Instalador' }
-    ]}
-];
+let operadores = [];
 
 let documentos = [];
 
@@ -209,7 +201,7 @@ function initApp() {
     loadClientes();
     loadInstalacoes();
     loadNotificacoes();
-    renderOperadores();
+    loadOperadores();
     loadDocumentos();
 }
 
@@ -300,11 +292,30 @@ function refreshCurrentPage() {
     } else if (currentPage === 'notificacoes') {
         loadNotificacoes(false);
     } else if (currentPage === 'funcionarios') {
-        renderOperadores();
+        loadOperadores(false);
     } else if (currentPage === 'documentos') {
         loadDocumentos(false);
     }
 }
+async function loadOperadores(showAlert = true) {
+    try {
+        const data = await apiRequest('/api/operadores');
+        operadores = data.map((operador) => ({
+            id: operador.id,
+            nome: operador.nome,
+            tipo: operador.tipo,
+            usuarios: (operador.usuarios || []).map((usuario) => ({
+                id: usuario.id,
+                conecte: usuario.conecte,
+                tipo: usuario.tipo
+            }))
+        }));
+        renderOperadores();
+    } catch (error) {
+        handleApiError(error, 'Erro ao carregar operadores.', showAlert);
+    }
+}
+
 
 // ============================================
 // NAVEGAÇÃO
@@ -853,7 +864,7 @@ function openModalOperador() {
     document.getElementById('modal-operador').classList.add('active');
 }
 
-function saveOperador(event) {
+async function saveOperador(event) {
     event.preventDefault();
 
     const conecte = document.getElementById('form-op-conecte').value;
@@ -865,17 +876,17 @@ function saveOperador(event) {
         return;
     }
 
-    const novoOperador = {
-        id: operadores.length + 1,
-        nome: conecte,
-        tipo: tipo,
-        usuarios: []
-    };
-
-    operadores.push(novoOperador);
-    renderOperadores();
-    closeModal('modal-operador');
-    alert('Operador criado com sucesso!');
+    try {
+        await apiRequest('/api/operadores', {
+            method: 'POST',
+            body: JSON.stringify({ nome: conecte, tipo })
+        });
+        await loadOperadores();
+        closeModal('modal-operador');
+        alert('Operador criado com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao criar operador.');
+    }
 }
 
 function editarUsuario(operadorId, usuarioId) {
@@ -889,14 +900,17 @@ function trocarSenha(operadorId, usuarioId) {
     }
 }
 
-function excluirUsuario(operadorId, usuarioId) {
-    if (confirm('Tem certeza que deseja excluir este usuario?')) {
-        const operador = operadores.find(o => o.id === operadorId);
-        if (operador) {
-            operador.usuarios = operador.usuarios.filter(u => u.id !== usuarioId);
-            renderOperadores();
-            alert('Usuario excluido com sucesso!');
-        }
+async function excluirUsuario(operadorId, usuarioId) {
+    if (!confirm('Tem certeza que deseja excluir este usuario?')) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/operadores/${operadorId}/usuarios/${usuarioId}`, { method: 'DELETE' });
+        await loadOperadores();
+        alert('Usuario excluido com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao excluir usuario.');
     }
 }
 
