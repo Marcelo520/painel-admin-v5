@@ -65,7 +65,7 @@
                 <div class="nav-section">
                     <h3>Administração</h3>
                     <ul>
-                        <li><a href="#" onclick="showPage('funcionarios')" class="nav-link">Funcionários</a></li>
+                        <li class="admin-only"><a href="#" onclick="showPage('funcionarios')" class="nav-link">Funcionários</a></li>
                     </ul>
                 </div>
             </nav>
@@ -99,7 +99,7 @@
                         <div class="toolbar">
                             <button class="btn btn-primary" onclick="createCliente()">+ Novo Cliente</button>
                             <button class="btn btn-secondary" onclick="exportData('clientes')">Exportar</button>
-                            <button class="btn btn-secondary" onclick="deleteSelected()">Deletar Selecionados</button>
+                            <button class="btn btn-secondary admin-only" onclick="deleteSelected()">Deletar Selecionados</button>
                         </div>
                     </div>
 
@@ -456,6 +456,26 @@
                         <option value="Operador">Operador</option>
                         <option value="Instalador">Instalador</option>
                     </select>
+                </div>
+                <button type="submit" class="btn btn-success">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para criar usuario instalador -->
+    <div id="modal-usuario" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal-usuario')">&times;</span>
+            <h2>Criar Instalador</h2>
+            <form onsubmit="saveUsuario(event)">
+                <input type="hidden" id="form-user-operador-id">
+                <div class="form-group">
+                    <label>Conecte-se *</label>
+                    <input type="text" id="form-user-conecte" placeholder="Conecte-se" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha *</label>
+                    <input type="password" id="form-user-senha" placeholder="Senha" required>
                 </div>
                 <button type="submit" class="btn btn-success">Salvar</button>
             </form>

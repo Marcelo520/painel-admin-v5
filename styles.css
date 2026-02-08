@@ -866,6 +866,10 @@ body.logged-out #app-container {
     display: none;
 }
 
+.role-installer .admin-only {
+    display: none !important;
+}
+
 .login-card {
     width: 100%;
     max-width: 420px;

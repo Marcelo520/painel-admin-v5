@@ -5,6 +5,7 @@
 // API
 const API_URL = 'https://api.testandoapp.com';
 const AUTH_STORAGE_KEY = 'adminAuthToken';
+const AUTH_ROLE_KEY = 'adminAuthRole';
 
 // Dados (carregados da API)
 let clientes = [];
@@ -198,6 +199,7 @@ async function bootstrapAuth() {
 }
 
 function initApp() {
+    applyRoleUI();
     loadClientes();
     loadInstalacoes();
     loadNotificacoes();
@@ -211,6 +213,18 @@ function isLoggedIn() {
 
 function getAuthToken() {
     return localStorage.getItem(AUTH_STORAGE_KEY);
+}
+
+function getAuthRole() {
+    return localStorage.getItem(AUTH_ROLE_KEY) || 'admin';
+}
+
+function isAdmin() {
+    return getAuthRole() === 'admin';
+}
+
+function applyRoleUI() {
+    document.body.classList.toggle('role-installer', !isAdmin());
 }
 
 function showLogin() {
@@ -243,6 +257,7 @@ function handleLogin(event) {
     })
         .then((data) => {
             localStorage.setItem(AUTH_STORAGE_KEY, data.token);
+            localStorage.setItem(AUTH_ROLE_KEY, data.role || 'admin');
             if (errorElement) errorElement.textContent = '';
             showApp();
             initApp();
@@ -367,6 +382,7 @@ function toggleSidebar() {
 function logout() {
     if (confirm('Tem certeza que deseja sair?')) {
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(AUTH_ROLE_KEY);
         alert('Logout realizado com sucesso!');
         showLogin();
     }
@@ -392,7 +408,7 @@ function renderClientes() {
             <td><span class="status-badge status-${cliente.status.toLowerCase()}">${cliente.status}</span></td>
             <td>
                 ${cliente.status === 'PENDENTE' ? `<button class="btn btn-primary btn-sm" onclick="liberarAcesso(${cliente.id})">Liberar</button>` : ''}
-                <button class="btn btn-danger btn-sm" onclick="deleteCliente(${cliente.id})">Excluir</button>
+                ${isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteCliente(${cliente.id})">Excluir</button>` : ''}
             </td>
         `;
         tbody.appendChild(row);
@@ -511,6 +527,7 @@ function renderInstalacoes() {
     instalacoes.forEach((inst) => {
         const row = document.createElement('tr');
         const statusClass = inst.status === 'ATIVO' ? 'status-ativo' : 'status-inativo';
+        const deleteButton = isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteInstalacao(${inst.id})">Excluir</button>` : '';
         row.innerHTML = `
             <td>${inst.cliente}</td>
             <td>${inst.email}</td>
@@ -521,7 +538,7 @@ function renderInstalacoes() {
             <td><span class="status-badge ${statusClass}">${inst.status}</span></td>
             <td>
                 <button class="btn btn-primary btn-sm" onclick="openInstalacao(${inst.id})">Abrir</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteInstalacao(${inst.id})">Excluir</button>
+                ${deleteButton}
             </td>
         `;
         tbody.appendChild(row);
@@ -551,6 +568,7 @@ function filterInstalacoes() {
     filtered.forEach((inst) => {
         const row = document.createElement('tr');
         const statusClass = inst.status === 'ATIVO' ? 'status-ativo' : 'status-inativo';
+        const deleteButton = isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteInstalacao(${inst.id})">Excluir</button>` : '';
         row.innerHTML = `
             <td>${inst.cliente}</td>
             <td>${inst.email}</td>
@@ -561,7 +579,7 @@ function filterInstalacoes() {
             <td><span class="status-badge ${statusClass}">${inst.status}</span></td>
             <td>
                 <button class="btn btn-primary btn-sm" onclick="openInstalacao(${inst.id})">Abrir</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteInstalacao(${inst.id})">Excluir</button>
+                ${deleteButton}
             </td>
         `;
         tbody.appendChild(row);
@@ -836,19 +854,27 @@ function renderOperadores() {
     operadores.forEach((operador) => {
         const operadorDiv = document.createElement('div');
         operadorDiv.className = 'operador-section';
+        const addUsuarioButton = isAdmin()
+            ? `<button class="btn btn-primary btn-sm" onclick="openModalUsuario(${operador.id})">NOVO INSTALADOR</button>`
+            : '';
+        const usuarioActions = isAdmin()
+            ? `<div class="usuario-actions">
+                    <button class="btn btn-primary btn-sm" onclick="editarUsuario(${operador.id}, ${usuario.id})">TROCAR</button>
+                    <button class="btn btn-primary btn-sm" onclick="trocarSenha(${operador.id}, ${usuario.id})">TROCAR SENHA</button>
+                    <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${operador.id}, ${usuario.id})">EXCLUIR</button>
+                </div>`
+            : '';
+
         operadorDiv.innerHTML = `
             <div class="operador-header">
                 <h3>👤 Operador: ${operador.nome}</h3>
+                ${addUsuarioButton}
             </div>
             <div class="usuarios-list">
                 ${operador.usuarios.map(usuario => `
                     <div class="usuario-item">
                         <span>👥 ${usuario.conecte}</span>
-                        <div class="usuario-actions">
-                            <button class="btn btn-primary btn-sm" onclick="editarUsuario(${operador.id}, ${usuario.id})">TROCAR</button>
-                            <button class="btn btn-primary btn-sm" onclick="trocarSenha(${operador.id}, ${usuario.id})">TROCAR SENHA</button>
-                            <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${operador.id}, ${usuario.id})">EXCLUIR</button>
-                        </div>
+                        ${usuarioActions}
                     </div>
                 `).join('')}
             </div>
@@ -857,7 +883,51 @@ function renderOperadores() {
     });
 }
 
+function openModalUsuario(operadorId) {
+    if (!isAdmin()) {
+        alert('Acesso restrito.');
+        return;
+    }
+    document.getElementById('form-user-operador-id').value = operadorId;
+    document.getElementById('form-user-conecte').value = '';
+    document.getElementById('form-user-senha').value = '';
+    document.getElementById('modal-usuario').classList.add('active');
+}
+
+async function saveUsuario(event) {
+    event.preventDefault();
+    if (!isAdmin()) {
+        alert('Acesso restrito.');
+        return;
+    }
+
+    const operadorId = document.getElementById('form-user-operador-id').value;
+    const conecte = document.getElementById('form-user-conecte').value;
+    const senha = document.getElementById('form-user-senha').value;
+
+    if (!operadorId || !conecte || !senha) {
+        alert('Preencha todos os campos obrigatorios!');
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/operadores/${operadorId}/usuarios`, {
+            method: 'POST',
+            body: JSON.stringify({ conecte, tipo: 'Instalador', senha })
+        });
+        await loadOperadores();
+        closeModal('modal-usuario');
+        alert('Instalador criado com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao criar instalador.');
+    }
+}
+
 function openModalOperador() {
+    if (!isAdmin()) {
+        alert('Acesso restrito.');
+        return;
+    }
     document.getElementById('form-op-conecte').value = '';
     document.getElementById('form-op-senha').value = '';
     document.getElementById('form-op-tipo').value = '';
@@ -865,6 +935,10 @@ function openModalOperador() {
 }
 
 async function saveOperador(event) {
+    if (!isAdmin()) {
+        alert('Acesso restrito.');
+        return;
+    }
     event.preventDefault();
 
     const conecte = document.getElementById('form-op-conecte').value;
@@ -893,10 +967,25 @@ function editarUsuario(operadorId, usuarioId) {
     alert('Funcionalidade de edicao em desenvolvimento...');
 }
 
-function trocarSenha(operadorId, usuarioId) {
+async function trocarSenha(operadorId, usuarioId) {
+    if (!isAdmin()) {
+        alert('Acesso restrito.');
+        return;
+    }
+
     const novaSenha = prompt('Digite a nova senha:');
-    if (novaSenha) {
+    if (!novaSenha) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/operadores/${operadorId}/usuarios/${usuarioId}/senha`, {
+            method: 'PUT',
+            body: JSON.stringify({ senha: novaSenha })
+        });
         alert('Senha alterada com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao trocar senha.');
     }
 }
 
