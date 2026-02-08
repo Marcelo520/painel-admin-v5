@@ -264,12 +264,13 @@ function startSessionTimer() {
     const warningDelay = SESSION_TIMEOUT_MS - SESSION_WARNING_MS;
     if (warningDelay > 0) {
         sessionWarningId = setTimeout(() => {
-            showToast('Sua sessao vai expirar em 2 minutos por inatividade.');
+            showSessionWarning();
         }, warningDelay);
     }
     sessionTimeoutId = setTimeout(() => {
         localStorage.removeItem(AUTH_STORAGE_KEY);
         localStorage.removeItem(AUTH_ROLE_KEY);
+        hideSessionWarning();
         showToast('Sessao expirada por inatividade. Faça login novamente.');
         showLogin();
     }, SESSION_TIMEOUT_MS);
@@ -284,6 +285,7 @@ function stopSessionTimer() {
         clearTimeout(sessionWarningId);
         sessionWarningId = null;
     }
+    hideSessionWarning();
 }
 
 function resetSessionTimer() {
@@ -295,6 +297,27 @@ function resetSessionTimer() {
 ['click', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach((eventName) => {
     document.addEventListener(eventName, resetSessionTimer, { passive: true });
 });
+
+function showSessionWarning() {
+    const overlay = document.getElementById('session-warning');
+    if (overlay) {
+        overlay.classList.add('show');
+    } else {
+        showToast('Sua sessao vai expirar em 2 minutos por inatividade.');
+    }
+}
+
+function hideSessionWarning() {
+    const overlay = document.getElementById('session-warning');
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+}
+
+function acknowledgeSessionWarning() {
+    hideSessionWarning();
+    resetSessionTimer();
+}
 
 function showToast(message, timeout = 4000) {
     const container = document.getElementById('toast-container');

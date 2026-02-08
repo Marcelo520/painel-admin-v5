@@ -952,3 +952,43 @@ body.logged-out #app-container {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* ============================================
+   SESSION WARNING
+   ============================================ */
+
+.session-warning {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(127, 29, 29, 0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1400;
+    padding: 20px;
+}
+
+.session-warning.show {
+    display: flex;
+}
+
+.session-warning-card {
+    background-color: #111827;
+    border: 1px solid #ef4444;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.session-warning-card h3 {
+    color: #fca5a5;
+    margin-bottom: 8px;
+}
+
+.session-warning-card p {
+    color: #e5e7eb;
+    margin-bottom: 16px;
+}
