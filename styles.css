@@ -850,12 +850,16 @@ input:checked + .toggle-slider:before {
 .login-screen {
     position: fixed;
     inset: 0;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     background-color: var(--bg-dark);
     padding: 20px;
     z-index: 1000;
+}
+
+#app-container {
+    display: none;
 }
 
 .login-card {
