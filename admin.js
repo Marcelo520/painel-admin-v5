@@ -857,6 +857,9 @@ function renderOperadores() {
         const addUsuarioButton = isAdmin()
             ? `<button class="btn btn-primary btn-sm" onclick="openModalUsuario(${operador.id})">NOVO INSTALADOR</button>`
             : '';
+        const deleteOperadorButton = isAdmin()
+            ? `<button class="btn btn-danger btn-sm" onclick="deleteOperador(${operador.id})">EXCLUIR OPERADOR</button>`
+            : '';
         const usuariosHtml = operador.usuarios.map((usuario) => {
             const usuarioActions = isAdmin()
                 ? `<div class="usuario-actions">
@@ -877,7 +880,10 @@ function renderOperadores() {
         operadorDiv.innerHTML = `
             <div class="operador-header">
                 <h3>👤 Operador: ${operador.nome}</h3>
-                ${addUsuarioButton}
+                <div class="usuario-actions">
+                    ${addUsuarioButton}
+                    ${deleteOperadorButton}
+                </div>
             </div>
             <div class="usuarios-list">
                 ${usuariosHtml}
@@ -885,6 +891,24 @@ function renderOperadores() {
         `;
         container.appendChild(operadorDiv);
     });
+}
+
+async function deleteOperador(operadorId) {
+    if (!isAdmin()) {
+        alert('Acesso restrito.');
+        return;
+    }
+    if (!confirm('Tem certeza que deseja excluir este operador e seus instaladores?')) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/operadores/${operadorId}`, { method: 'DELETE' });
+        await loadOperadores();
+        alert('Operador excluido com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao excluir operador.');
+    }
 }
 
 function openModalUsuario(operadorId) {
