@@ -960,7 +960,7 @@ body.logged-out #app-container {
 .session-warning {
     position: fixed;
     inset: 0;
-    background-color: rgba(127, 29, 29, 0.85);
+    background-color: transparent;
     display: none;
     align-items: center;
     justify-content: center;
@@ -973,22 +973,22 @@ body.logged-out #app-container {
 }
 
 .session-warning-card {
-    background-color: #111827;
-    border: 1px solid #ef4444;
+    background-color: #7f1d1d;
+    border: 2px solid #fecaca;
     border-radius: 12px;
     padding: 24px;
     max-width: 420px;
     width: 100%;
     text-align: center;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
 }
 
 .session-warning-card h3 {
-    color: #fca5a5;
+    color: #fee2e2;
     margin-bottom: 8px;
 }
 
 .session-warning-card p {
-    color: #e5e7eb;
+    color: #fee2e2;
     margin-bottom: 16px;
 }
