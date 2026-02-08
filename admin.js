@@ -6,7 +6,7 @@
 const API_URL = 'https://api.testandoapp.com';
 const AUTH_STORAGE_KEY = 'adminAuthToken';
 const AUTH_ROLE_KEY = 'adminAuthRole';
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos
+const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 30 minutos
 const SESSION_WARNING_MS = 2 * 60 * 1000; // 2 minutos antes
 let sessionTimeoutId = null;
 let sessionWarningId = null;
