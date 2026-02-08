@@ -249,6 +249,7 @@ function showLogin() {
     if (loginScreen) loginScreen.style.display = '';
     if (appContainer) appContainer.style.display = '';
     stopSessionTimer();
+    clearLoginFields();
 }
 
 function showApp() {
@@ -482,6 +483,13 @@ function logout() {
         alert('Logout realizado com sucesso!');
         showLogin();
     }
+}
+
+function clearLoginFields() {
+    const usernameField = document.getElementById('login-username');
+    const passwordField = document.getElementById('login-password');
+    if (usernameField) usernameField.value = '';
+    if (passwordField) passwordField.value = '';
 }
 
 // ============================================
