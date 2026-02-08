@@ -31,6 +31,10 @@ let operadores = [
 let documentos = [];
 
 async function apiRequest(path, options = {}) {
+    const {
+        skipAuthError = false,
+        ...fetchOptions
+    } = options;
     const headers = { 'Content-Type': 'application/json' };
     const token = getAuthToken();
     if (token) {
@@ -39,10 +43,10 @@ async function apiRequest(path, options = {}) {
 
     const response = await fetch(`${API_URL}${path}`, {
         headers,
-        ...options
+        ...fetchOptions
     });
 
-    if (response.status === 401) {
+    if (response.status === 401 && !skipAuthError) {
         handleUnauthorized();
         throw new Error('Sessao expirada. Faça login novamente.');
     }
@@ -182,13 +186,24 @@ async function loadDocumentos(showAlert = true) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    if (isLoggedIn()) {
+    bootstrapAuth();
+});
+
+async function bootstrapAuth() {
+    if (!isLoggedIn()) {
+        showLogin();
+        return;
+    }
+
+    try {
+        await apiRequest('/api/auth/me', { method: 'GET', skipAuthError: true });
         showApp();
         initApp();
-    } else {
+    } catch (error) {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
         showLogin();
     }
-});
+}
 
 function initApp() {
     loadClientes();
@@ -231,7 +246,8 @@ function handleLogin(event) {
 
     apiRequest('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
+        skipAuthError: true
     })
         .then((data) => {
             localStorage.setItem(AUTH_STORAGE_KEY, data.token);
