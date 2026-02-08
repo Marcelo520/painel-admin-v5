@@ -850,7 +850,7 @@ input:checked + .toggle-slider:before {
 .login-screen {
     position: fixed;
     inset: 0;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     background-color: var(--bg-dark);
@@ -858,7 +858,11 @@ input:checked + .toggle-slider:before {
     z-index: 1000;
 }
 
-#app-container {
+body.logged-out #login-screen {
+    display: flex;
+}
+
+body.logged-out #app-container {
     display: none;
 }
 

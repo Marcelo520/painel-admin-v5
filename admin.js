@@ -207,17 +207,19 @@ function getAuthToken() {
 }
 
 function showLogin() {
+    document.body.classList.add('logged-out');
     const loginScreen = document.getElementById('login-screen');
     const appContainer = document.getElementById('app-container');
-    if (loginScreen) loginScreen.style.display = 'flex';
-    if (appContainer) appContainer.style.display = 'none';
+    if (loginScreen) loginScreen.style.display = '';
+    if (appContainer) appContainer.style.display = '';
 }
 
 function showApp() {
+    document.body.classList.remove('logged-out');
     const loginScreen = document.getElementById('login-screen');
     const appContainer = document.getElementById('app-container');
-    if (loginScreen) loginScreen.style.display = 'none';
-    if (appContainer) appContainer.style.display = 'flex';
+    if (loginScreen) loginScreen.style.display = '';
+    if (appContainer) appContainer.style.display = '';
 }
 
 function handleLogin(event) {
