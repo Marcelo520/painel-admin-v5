@@ -857,13 +857,22 @@ function renderOperadores() {
         const addUsuarioButton = isAdmin()
             ? `<button class="btn btn-primary btn-sm" onclick="openModalUsuario(${operador.id})">NOVO INSTALADOR</button>`
             : '';
-        const usuarioActions = isAdmin()
-            ? `<div class="usuario-actions">
-                    <button class="btn btn-primary btn-sm" onclick="editarUsuario(${operador.id}, ${usuario.id})">TROCAR</button>
-                    <button class="btn btn-primary btn-sm" onclick="trocarSenha(${operador.id}, ${usuario.id})">TROCAR SENHA</button>
-                    <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${operador.id}, ${usuario.id})">EXCLUIR</button>
-                </div>`
-            : '';
+        const usuariosHtml = operador.usuarios.map((usuario) => {
+            const usuarioActions = isAdmin()
+                ? `<div class="usuario-actions">
+                        <button class="btn btn-primary btn-sm" onclick="editarUsuario(${operador.id}, ${usuario.id})">TROCAR</button>
+                        <button class="btn btn-primary btn-sm" onclick="trocarSenha(${operador.id}, ${usuario.id})">TROCAR SENHA</button>
+                        <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${operador.id}, ${usuario.id})">EXCLUIR</button>
+                    </div>`
+                : '';
+
+            return `
+                <div class="usuario-item">
+                    <span>👥 ${usuario.conecte}</span>
+                    ${usuarioActions}
+                </div>
+            `;
+        }).join('');
 
         operadorDiv.innerHTML = `
             <div class="operador-header">
@@ -871,12 +880,7 @@ function renderOperadores() {
                 ${addUsuarioButton}
             </div>
             <div class="usuarios-list">
-                ${operador.usuarios.map(usuario => `
-                    <div class="usuario-item">
-                        <span>👥 ${usuario.conecte}</span>
-                        ${usuarioActions}
-                    </div>
-                `).join('')}
+                ${usuariosHtml}
             </div>
         `;
         container.appendChild(operadorDiv);
