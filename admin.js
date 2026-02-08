@@ -4,6 +4,7 @@
 
 // API
 const API_URL = 'https://api.testandoapp.com';
+const AUTH_STORAGE_KEY = 'adminAuthToken';
 
 // Dados (carregados da API)
 let clientes = [];
@@ -30,10 +31,21 @@ let operadores = [
 let documentos = [];
 
 async function apiRequest(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_URL}${path}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         ...options
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sessao expirada. Faça login novamente.');
+    }
 
     if (!response.ok) {
         const text = await response.text();
@@ -52,6 +64,12 @@ function handleApiError(error, mensagem, showAlert = true) {
     if (showAlert) {
         alert(mensagem);
     }
+}
+
+function handleUnauthorized() {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    alert('Sua sessao expirou. Faça login novamente.');
+    showLogin();
 }
 
 function formatDate(value) {
@@ -164,12 +182,67 @@ async function loadDocumentos(showAlert = true) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    if (isLoggedIn()) {
+        showApp();
+        initApp();
+    } else {
+        showLogin();
+    }
+});
+
+function initApp() {
     loadClientes();
     loadInstalacoes();
     loadNotificacoes();
     renderOperadores();
     loadDocumentos();
-});
+}
+
+function isLoggedIn() {
+    return Boolean(getAuthToken());
+}
+
+function getAuthToken() {
+    return localStorage.getItem(AUTH_STORAGE_KEY);
+}
+
+function showLogin() {
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.getElementById('app-container');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (appContainer) appContainer.style.display = 'none';
+}
+
+function showApp() {
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.getElementById('app-container');
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'flex';
+}
+
+function handleLogin(event) {
+    event.preventDefault();
+
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errorElement = document.getElementById('login-error');
+
+    apiRequest('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password })
+    })
+        .then((data) => {
+            localStorage.setItem(AUTH_STORAGE_KEY, data.token);
+            if (errorElement) errorElement.textContent = '';
+            showApp();
+            initApp();
+        })
+        .catch((error) => {
+            if (errorElement) {
+                errorElement.textContent = error.message || 'Usuário ou senha inválidos.';
+            }
+        });
+}
 
 // ============================================
 // AUTO-REFRESH
@@ -264,8 +337,9 @@ function toggleSidebar() {
 
 function logout() {
     if (confirm('Tem certeza que deseja sair?')) {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
         alert('Logout realizado com sucesso!');
-        // Redirecionar para página de login
+        showLogin();
     }
 }
 
@@ -418,6 +492,7 @@ function renderInstalacoes() {
             <td><span class="status-badge ${statusClass}">${inst.status}</span></td>
             <td>
                 <button class="btn btn-primary btn-sm" onclick="openInstalacao(${inst.id})">Abrir</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteInstalacao(${inst.id})">Excluir</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -457,10 +532,25 @@ function filterInstalacoes() {
             <td><span class="status-badge ${statusClass}">${inst.status}</span></td>
             <td>
                 <button class="btn btn-primary btn-sm" onclick="openInstalacao(${inst.id})">Abrir</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteInstalacao(${inst.id})">Excluir</button>
             </td>
         `;
         tbody.appendChild(row);
     });
+}
+
+async function deleteInstalacao(instId) {
+    if (!confirm('Tem certeza que deseja excluir esta instalacao?')) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/instalacoes/${instId}`, { method: 'DELETE' });
+        await loadInstalacoes();
+        alert('Instalacao excluida com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao excluir instalacao.');
+    }
 }
 
 function updateStats() {
