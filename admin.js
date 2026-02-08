@@ -6,6 +6,10 @@
 const API_URL = 'https://api.testandoapp.com';
 const AUTH_STORAGE_KEY = 'adminAuthToken';
 const AUTH_ROLE_KEY = 'adminAuthRole';
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos
+const SESSION_WARNING_MS = 2 * 60 * 1000; // 2 minutos antes
+let sessionTimeoutId = null;
+let sessionWarningId = null;
 
 // Dados (carregados da API)
 let clientes = [];
@@ -200,6 +204,7 @@ async function bootstrapAuth() {
 
 function initApp() {
     applyRoleUI();
+    startSessionTimer();
     loadClientes();
     loadInstalacoes();
     loadNotificacoes();
@@ -243,6 +248,7 @@ function showLogin() {
     const appContainer = document.getElementById('app-container');
     if (loginScreen) loginScreen.style.display = '';
     if (appContainer) appContainer.style.display = '';
+    stopSessionTimer();
 }
 
 function showApp() {
@@ -251,6 +257,62 @@ function showApp() {
     const appContainer = document.getElementById('app-container');
     if (loginScreen) loginScreen.style.display = '';
     if (appContainer) appContainer.style.display = '';
+}
+
+function startSessionTimer() {
+    stopSessionTimer();
+    const warningDelay = SESSION_TIMEOUT_MS - SESSION_WARNING_MS;
+    if (warningDelay > 0) {
+        sessionWarningId = setTimeout(() => {
+            showToast('Sua sessao vai expirar em 2 minutos por inatividade.');
+        }, warningDelay);
+    }
+    sessionTimeoutId = setTimeout(() => {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(AUTH_ROLE_KEY);
+        showToast('Sessao expirada por inatividade. Faça login novamente.');
+        showLogin();
+    }, SESSION_TIMEOUT_MS);
+}
+
+function stopSessionTimer() {
+    if (sessionTimeoutId) {
+        clearTimeout(sessionTimeoutId);
+        sessionTimeoutId = null;
+    }
+    if (sessionWarningId) {
+        clearTimeout(sessionWarningId);
+        sessionWarningId = null;
+    }
+}
+
+function resetSessionTimer() {
+    if (isLoggedIn()) {
+        startSessionTimer();
+    }
+}
+
+['click', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach((eventName) => {
+    document.addEventListener(eventName, resetSessionTimer, { passive: true });
+});
+
+function showToast(message, timeout = 4000) {
+    const container = document.getElementById('toast-container');
+    if (!container) {
+        alert(message);
+        return;
+    }
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, timeout);
 }
 
 function handleLogin(event) {
@@ -271,6 +333,7 @@ function handleLogin(event) {
             if (errorElement) errorElement.textContent = '';
             showApp();
             initApp();
+            resetSessionTimer();
         })
         .catch((error) => {
             if (errorElement) {
