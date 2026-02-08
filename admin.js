@@ -962,7 +962,7 @@ async function saveUsuario(event) {
 }
 
 function openModalOperador() {
-    if (!isAdminOrOperador()) {
+    if (!isAdmin()) {
         alert('Acesso restrito.');
         return;
     }
@@ -973,7 +973,7 @@ function openModalOperador() {
 }
 
 async function saveOperador(event) {
-    if (!isAdminOrOperador()) {
+    if (!isAdmin()) {
         alert('Acesso restrito.');
         return;
     }
