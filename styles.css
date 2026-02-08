@@ -870,6 +870,10 @@ body.logged-out #app-container {
     display: none !important;
 }
 
+.role-installer .admin-or-operator {
+    display: none !important;
+}
+
 .login-card {
     width: 100%;
     max-width: 420px;

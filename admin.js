@@ -223,8 +223,18 @@ function isAdmin() {
     return getAuthRole() === 'admin';
 }
 
+function isOperador() {
+    return getAuthRole() === 'operador';
+}
+
+function isAdminOrOperador() {
+    return isAdmin() || isOperador();
+}
+
 function applyRoleUI() {
-    document.body.classList.toggle('role-installer', !isAdmin());
+    document.body.classList.toggle('role-installer', !isAdminOrOperador());
+    document.body.classList.toggle('role-operator', isOperador());
+    document.body.classList.toggle('role-admin', isAdmin());
 }
 
 function showLogin() {
@@ -854,7 +864,7 @@ function renderOperadores() {
     operadores.forEach((operador) => {
         const operadorDiv = document.createElement('div');
         operadorDiv.className = 'operador-section';
-        const addUsuarioButton = isAdmin()
+        const addUsuarioButton = isAdminOrOperador()
             ? `<button class="btn btn-primary btn-sm" onclick="openModalUsuario(${operador.id})">NOVO INSTALADOR</button>`
             : '';
         const deleteOperadorButton = isAdmin()
@@ -894,7 +904,7 @@ function renderOperadores() {
 }
 
 async function deleteOperador(operadorId) {
-    if (!isAdmin()) {
+    if (!isAdminOrOperador()) {
         alert('Acesso restrito.');
         return;
     }
@@ -912,7 +922,7 @@ async function deleteOperador(operadorId) {
 }
 
 function openModalUsuario(operadorId) {
-    if (!isAdmin()) {
+    if (!isAdminOrOperador()) {
         alert('Acesso restrito.');
         return;
     }
@@ -924,7 +934,7 @@ function openModalUsuario(operadorId) {
 
 async function saveUsuario(event) {
     event.preventDefault();
-    if (!isAdmin()) {
+    if (!isAdminOrOperador()) {
         alert('Acesso restrito.');
         return;
     }
@@ -952,7 +962,7 @@ async function saveUsuario(event) {
 }
 
 function openModalOperador() {
-    if (!isAdmin()) {
+    if (!isAdminOrOperador()) {
         alert('Acesso restrito.');
         return;
     }
@@ -963,7 +973,7 @@ function openModalOperador() {
 }
 
 async function saveOperador(event) {
-    if (!isAdmin()) {
+    if (!isAdminOrOperador()) {
         alert('Acesso restrito.');
         return;
     }
@@ -981,7 +991,7 @@ async function saveOperador(event) {
     try {
         await apiRequest('/api/operadores', {
             method: 'POST',
-            body: JSON.stringify({ nome: conecte, tipo })
+            body: JSON.stringify({ nome: conecte, tipo, senha })
         });
         await loadOperadores();
         closeModal('modal-operador');
