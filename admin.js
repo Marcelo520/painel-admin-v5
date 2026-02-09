@@ -206,10 +206,6 @@ function initApp() {
     applyRoleUI();
     startSessionTimer();
     startAutoRefresh();
-    const autoBtn = document.getElementById('auto-refresh-btn');
-    if (autoBtn) {
-        autoBtn.classList.add('active');
-    }
     loadClientes();
     loadInstalacoes();
     loadNotificacoes();
@@ -402,6 +398,7 @@ function stopAutoRefresh() {
 }
 
 function refreshCurrentPage() {
+    triggerRefreshSpin();
     if (currentPage === 'clientes') {
         loadClientes(false);
     } else if (currentPage === 'instalacoes') {
@@ -413,6 +410,16 @@ function refreshCurrentPage() {
     } else if (currentPage === 'documentos') {
         loadDocumentos(false);
     }
+}
+
+function triggerRefreshSpin() {
+    const autoBtn = document.getElementById('auto-refresh-btn');
+    if (!autoBtn) return;
+    autoBtn.classList.remove('spinning');
+    // Reinicia a animacao
+    void autoBtn.offsetWidth;
+    autoBtn.classList.add('spinning');
+    setTimeout(() => autoBtn.classList.remove('spinning'), 900);
 }
 async function loadOperadores(showAlert = true) {
     try {

@@ -962,8 +962,8 @@ body.logged-out #app-container {
     }
 }
 
-#auto-refresh-btn.active {
-    animation: spin 1s linear infinite;
+#auto-refresh-btn.spinning {
+    animation: spin 0.9s linear 1;
 }
 
 /* ============================================
