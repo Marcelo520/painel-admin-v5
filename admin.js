@@ -3,7 +3,7 @@
 // ============================================
 
 // API
-const API_URL = 'https://api.testandoapp.com';
+const API_URL = 'https://api.recrutavagasonline.com';
 const AUTH_STORAGE_KEY = 'adminAuthToken';
 const AUTH_ROLE_KEY = 'adminAuthRole';
 const SESSION_TIMEOUT_MS = 20 * 60 * 1000; // 30 minutos
