@@ -953,6 +953,19 @@ body.logged-out #app-container {
     transform: translateY(0);
 }
 
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#auto-refresh-btn.active {
+    animation: spin 1s linear infinite;
+}
+
 /* ============================================
    SESSION WARNING
    ============================================ */

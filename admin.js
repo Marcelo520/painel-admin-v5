@@ -206,6 +206,10 @@ function initApp() {
     applyRoleUI();
     startSessionTimer();
     startAutoRefresh();
+    const autoBtn = document.getElementById('auto-refresh-btn');
+    if (autoBtn) {
+        autoBtn.classList.add('active');
+    }
     loadClientes();
     loadInstalacoes();
     loadNotificacoes();
