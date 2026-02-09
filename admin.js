@@ -17,7 +17,7 @@ let instalacoes = [];
 
 let currentPage = 'clientes';
 let currentInstalacao = null;
-let autoRefreshEnabled = false;
+let autoRefreshEnabled = true;
 let autoRefreshInterval = null;
 const AUTO_REFRESH_INTERVAL = 5000; // 5 segundos
 
@@ -205,6 +205,7 @@ async function bootstrapAuth() {
 function initApp() {
     applyRoleUI();
     startSessionTimer();
+    startAutoRefresh();
     loadClientes();
     loadInstalacoes();
     loadNotificacoes();
