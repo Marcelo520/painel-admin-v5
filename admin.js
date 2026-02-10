@@ -1346,11 +1346,20 @@ function editarDocumento(docId) {
     }
 }
 
-function excluirDocumento(docId) {
-    if (confirm('Tem certeza que deseja excluir este documento?')) {
-        documentos = documentos.filter(d => d.id !== docId);
-        renderDocumentos();
+async function excluirDocumento(docId) {
+    if (!confirm('Tem certeza que deseja excluir este documento?')) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/documentos/${docId}`, { method: 'DELETE' });
+        await loadDocumentos();
         alert('Documento excluido com sucesso!');
+    } catch (error) {
+        const mensagem = error.message?.includes('Cliente ainda ativo')
+            ? 'Nao foi possivel excluir. Exclua o cliente primeiro.'
+            : 'Erro ao excluir documento.';
+        handleApiError(error, mensagem);
     }
 }
 
@@ -1368,7 +1377,7 @@ function selectAllDocs(checkbox) {
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
 }
 
-function deleteSelectedDocs() {
+async function deleteSelectedDocs() {
     const checkboxes = document.querySelectorAll('.row-checkbox-doc:checked');
     if (checkboxes.length === 0) {
         alert('Selecione pelo menos um documento!');
@@ -1376,12 +1385,26 @@ function deleteSelectedDocs() {
     }
 
     if (confirm('Tem certeza que deseja deletar os documentos selecionados?')) {
-        checkboxes.forEach(checkbox => {
-            const docId = parseInt(checkbox.value);
-            documentos = documentos.filter(d => d.id !== docId);
-        });
-        renderDocumentos();
-        alert('Documentos deletados com sucesso!');
+        let erroClienteAtivo = false;
+        for (const checkbox of checkboxes) {
+            const docId = parseInt(checkbox.value, 10);
+            if (Number.isNaN(docId)) {
+                continue;
+            }
+            try {
+                await apiRequest(`/api/documentos/${docId}`, { method: 'DELETE' });
+            } catch (error) {
+                if (error.message?.includes('Cliente ainda ativo')) {
+                    erroClienteAtivo = true;
+                }
+            }
+        }
+        await loadDocumentos();
+        if (erroClienteAtivo) {
+            alert('Alguns documentos nao foram excluidos porque o cliente ainda existe.');
+        } else {
+            alert('Documentos deletados com sucesso!');
+        }
     }
 }
 
