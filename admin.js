@@ -132,6 +132,7 @@ async function loadInstalacoes(showAlert = true) {
             banco: inst.banco || 'link-sem',
             dataInstalacao: formatDate(inst.data_instalacao),
             ultimoAcesso: formatDate(inst.ultimo_acesso),
+            lastPing: inst.last_ping || null,
             status: (inst.status || 'ATIVO').toUpperCase()
         }));
         renderInstalacoes();
@@ -673,6 +674,9 @@ function renderInstalacoes() {
     instalacoes.forEach((inst) => {
         const row = document.createElement('tr');
         const statusClass = inst.status === 'ATIVO' ? 'status-ativo' : 'status-inativo';
+        const online = isInstalacaoOnline(inst.lastPing);
+        const onlineClass = online ? 'status-online' : 'status-offline';
+        const onlineLabel = online ? 'Online' : 'Offline';
         const deleteButton = isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteInstalacao(${inst.id})">Excluir</button>` : '';
         row.innerHTML = `
             <td>${inst.cliente}</td>
@@ -682,6 +686,7 @@ function renderInstalacoes() {
             <td>${inst.dataInstalacao}</td>
             <td>${inst.ultimoAcesso}</td>
             <td><span class="status-badge ${statusClass}">${inst.status}</span></td>
+            <td><span class="status-badge ${onlineClass}">${onlineLabel}</span></td>
             <td>
                 <button class="btn btn-primary btn-sm" onclick="openInstalacao(${inst.id})">Abrir</button>
                 ${deleteButton}
@@ -691,6 +696,17 @@ function renderInstalacoes() {
     });
 
     updateStats();
+}
+
+function isInstalacaoOnline(lastPing) {
+    if (!lastPing) {
+        return false;
+    }
+    const pingDate = new Date(lastPing);
+    if (Number.isNaN(pingDate.getTime())) {
+        return false;
+    }
+    return (Date.now() - pingDate.getTime()) <= 90 * 1000;
 }
 
 function filterInstalacoes() {

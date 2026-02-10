@@ -476,6 +476,16 @@ body {
     color: #6b7280;
 }
 
+.status-online {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.status-offline {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
 /* ============================================
    DETAIL PAGE
    ============================================ */
