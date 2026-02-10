@@ -525,6 +525,7 @@ function renderClientes() {
             <td>${cliente.nome}</td>
             <td>${cliente.cpf}</td>
             <td>${cliente.telefone}</td>
+            <td>${cliente.email || '-'}</td>
             <td>${cliente.dataCadastro}</td>
             <td>${cliente.acesso || '-'}</td>
             <td><span class="status-badge status-${cliente.status.toLowerCase()}">${cliente.status}</span></td>
