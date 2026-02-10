@@ -125,8 +125,9 @@ async function loadInstalacoes(showAlert = true) {
         const data = await apiRequest('/api/instalacoes');
         instalacoes = data.map((inst) => ({
             id: inst.id,
+            clienteId: inst.cliente_id,
             cliente: inst.cliente_nome || 'Não informado',
-            email: inst.email || '-',
+            email: inst.cliente_email || '-',
             instalador: inst.instalador || '-',
             banco: inst.banco || 'link-sem',
             dataInstalacao: formatDate(inst.data_instalacao),
@@ -166,13 +167,18 @@ async function loadDocumentos(showAlert = true) {
         documentos = data.map((doc) => ({
             id: doc.id,
             euia: `doc-${doc.id}`,
+            clienteId: doc.cliente_id,
             cliente: doc.cliente_nome || 'Não informado',
             data: formatDate(doc.data_upload),
             arquivo: doc.nome_arquivo || 'documento',
             descricao: doc.descricao || '',
-            urlArquivo: doc.url_arquivo || ''
+            urlArquivo: doc.url_arquivo || '',
+            status: (doc.status || 'PENDENTE').toUpperCase()
         }));
         renderDocumentos();
+        if (currentInstalacao) {
+            renderDocumentosDetalhe();
+        }
     } catch (error) {
         handleApiError(error, 'Erro ao carregar documentos.', showAlert);
     }
@@ -729,10 +735,11 @@ function updateStats() {
 }
 
 function openInstalacao(instId) {
-    currentInstalacao = instalacoes.find(i => i.id === instId);
+    const normalizedId = Number(instId);
+    currentInstalacao = instalacoes.find(i => Number(i.id) === normalizedId);
     if (currentInstalacao) {
-        document.getElementById('detail-id-instalacao').value = `inst-${instId}`;
-        document.getElementById('detail-id-cliente').value = `cli-${instId}`;
+        document.getElementById('detail-id-instalacao').value = String(currentInstalacao.id);
+        document.getElementById('detail-id-cliente').value = String(currentInstalacao.clienteId || '');
         document.getElementById('detail-card-instalador').textContent = currentInstalacao.instalador;
         document.getElementById('detail-card-operador').textContent = 'Não informado';
         document.getElementById('detail-card-acesso').textContent = currentInstalacao.ultimoAcesso;
@@ -744,6 +751,7 @@ function openInstalacao(instId) {
 
         // Renderizar histórico
         renderHistory();
+        renderDocumentosDetalhe();
 
         showPage('detalhe-instalacao');
     }
@@ -765,19 +773,93 @@ function renderHistory() {
     `;
 }
 
-function requestDocument() {
-    alert('Solicitação de documento enviada ao cliente!');
-    document.getElementById('document-status').textContent = '⏳';
+async function requestDocument() {
+    if (!currentInstalacao?.clienteId) {
+        alert('Cliente nao encontrado para esta instalacao.');
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/solicitar-documento`, { method: 'POST' });
+        alert('Solicitação de documento enviada ao cliente!');
+        document.getElementById('document-status').textContent = '⏳';
+    } catch (error) {
+        handleApiError(error, 'Erro ao solicitar documento.');
+    }
 }
 
-function approveDocument() {
-    alert('Documento aprovado!');
-    document.getElementById('document-status').textContent = '✅';
+function renderDocumentosDetalhe() {
+    const container = document.getElementById('detail-documentos-list');
+    if (!container || !currentInstalacao) {
+        return;
+    }
+
+    const docs = documentos.filter((doc) => doc.clienteId === currentInstalacao.clienteId);
+    container.innerHTML = '';
+
+    if (docs.length === 0) {
+        document.getElementById('document-status').textContent = '❌';
+        container.innerHTML = '<div class="document-item">Nenhum documento enviado.</div>';
+        return;
+    }
+
+    updateDocumentoStatusIcon(docs);
+
+    docs.forEach((doc) => {
+        const statusClass = (doc.status || 'PENDENTE').toLowerCase();
+        const row = document.createElement('div');
+        row.className = 'document-item';
+        row.innerHTML = `
+            <div class="document-item-info">
+                <strong>${doc.arquivo}</strong>
+                <span>${doc.data}</span>
+                <span class="document-status-badge ${statusClass}">${doc.status}</span>
+            </div>
+            <div class="document-item-actions">
+                <button class="btn btn-secondary btn-sm" onclick="downloadDocumento('${doc.arquivo}')">Ver</button>
+                <button class="btn btn-primary btn-sm" onclick="updateDocumentoStatus(${doc.id}, 'APROVADO')">Aprovar</button>
+                <button class="btn btn-danger btn-sm" onclick="updateDocumentoStatus(${doc.id}, 'REJEITADO')">Rejeitar</button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
 }
 
-function rejectDocument() {
-    alert('Documento rejeitado!');
-    document.getElementById('document-status').textContent = '❌';
+function updateDocumentoStatusIcon(docs) {
+    const statusIcon = document.getElementById('document-status');
+    if (!statusIcon) {
+        return;
+    }
+
+    const hasPendente = docs.some((doc) => doc.status === 'PENDENTE');
+    const hasRejeitado = docs.some((doc) => doc.status === 'REJEITADO');
+    const hasAprovado = docs.some((doc) => doc.status === 'APROVADO');
+
+    if (hasPendente) {
+        statusIcon.textContent = '⏳';
+        return;
+    }
+
+    if (hasRejeitado && !hasAprovado) {
+        statusIcon.textContent = '❌';
+        return;
+    }
+
+    statusIcon.textContent = '✅';
+}
+
+async function updateDocumentoStatus(docId, status) {
+    try {
+        await apiRequest(`/api/documentos/${docId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status })
+        });
+        await loadDocumentos(false);
+        renderDocumentosDetalhe();
+        alert(`Documento ${status.toLowerCase()} com sucesso!`);
+    } catch (error) {
+        handleApiError(error, 'Erro ao atualizar status do documento.');
+    }
 }
 
 function saveDetail() {

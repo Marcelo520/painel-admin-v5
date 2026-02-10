@@ -615,6 +615,60 @@ input:checked + .toggle-slider:before {
     gap: 10px;
 }
 
+.document-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.document-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.document-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 200px;
+}
+
+.document-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.document-status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background-color: #2d2f3a;
+    color: var(--text-secondary);
+}
+
+.document-status-badge.aprovado {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.document-status-badge.rejeitado {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.document-status-badge.pendente {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
 .info-card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
