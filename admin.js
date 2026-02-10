@@ -706,7 +706,7 @@ function isInstalacaoOnline(lastPing) {
     if (Number.isNaN(pingDate.getTime())) {
         return false;
     }
-    return (Date.now() - pingDate.getTime()) <= 90 * 1000;
+    return (Date.now() - pingDate.getTime()) <= 30 * 1000;
 }
 
 function filterInstalacoes() {
