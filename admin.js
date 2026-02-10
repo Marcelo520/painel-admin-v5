@@ -530,12 +530,35 @@ function renderClientes() {
             <td>${cliente.acesso || '-'}</td>
             <td><span class="status-badge status-${cliente.status.toLowerCase()}">${cliente.status}</span></td>
             <td>
+                <button class="btn btn-secondary btn-sm" onclick="openClienteDetalhe(${cliente.id})">Detalhes</button>
                 ${cliente.status === 'PENDENTE' ? `<button class="btn btn-primary btn-sm" onclick="liberarAcesso(${cliente.id})">Liberar</button>` : ''}
                 ${isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteCliente(${cliente.id})">Excluir</button>` : ''}
             </td>
         `;
         tbody.appendChild(row);
     });
+}
+
+async function openClienteDetalhe(clienteId) {
+    try {
+        const cliente = await apiRequest(`/api/clientes/${clienteId}`);
+        document.getElementById('detail-cliente-nome').value = cliente.nome || '';
+        document.getElementById('detail-cliente-cpf').value = cliente.cpf || '';
+        document.getElementById('detail-cliente-telefone').value = cliente.telefone || '';
+        document.getElementById('detail-cliente-email').value = cliente.email || '';
+        document.getElementById('detail-cliente-status').value = (cliente.status || '').toUpperCase();
+        document.getElementById('detail-cliente-acesso').value = cliente.acesso || '';
+        document.getElementById('detail-cliente-cep').value = cliente.cep || '';
+        document.getElementById('detail-cliente-rua').value = cliente.rua || '';
+        document.getElementById('detail-cliente-numero').value = cliente.numero || '';
+        document.getElementById('detail-cliente-complemento').value = cliente.complemento || '';
+        document.getElementById('detail-cliente-bairro').value = cliente.bairro || '';
+        document.getElementById('detail-cliente-cidade').value = cliente.cidade || '';
+        document.getElementById('detail-cliente-uf').value = cliente.uf || '';
+        document.getElementById('modal-cliente-detalhe').classList.add('active');
+    } catch (error) {
+        handleApiError(error, 'Erro ao carregar detalhes do cliente.');
+    }
 }
 
 function createCliente() {
