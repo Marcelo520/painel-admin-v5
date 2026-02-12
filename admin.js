@@ -470,6 +470,8 @@ function refreshCurrentPage() {
         loadClientes(false);
     } else if (currentPage === 'instalacoes') {
         loadInstalacoes(false);
+    } else if (currentPage === 'detalhe-instalacao') {
+        refreshDetalheInstalacao(false);
     } else if (currentPage === 'notificacoes') {
         loadNotificacoes(false);
     } else if (currentPage === 'funcionarios') {
@@ -548,6 +550,13 @@ function showPage(pageName) {
     }
 
     currentPage = pageName;
+
+    // Carga imediata ao entrar na pagina, sem esperar o ciclo de 5s
+    if (pageName === 'documentos') {
+        loadDocumentos(false);
+    } else if (pageName === 'detalhe-instalacao') {
+        refreshDetalheInstalacao(false);
+    }
 }
 
 function toggleSidebar() {
@@ -865,6 +874,43 @@ async function openInstalacao(instId) {
         }
 
         showPage('detalhe-instalacao');
+    }
+}
+
+async function refreshDetalheInstalacao(showAlert = false) {
+    if (!currentInstalacao?.id || !currentInstalacao?.clienteId) {
+        return;
+    }
+
+    try {
+        await Promise.all([
+            loadInstalacoes(showAlert),
+            loadDocumentos(showAlert)
+        ]);
+
+        const atualizado = instalacoes.find((i) => Number(i.id) === Number(currentInstalacao.id));
+        if (atualizado) {
+            currentInstalacao = atualizado;
+        }
+
+        document.getElementById('detail-id-instalacao').value = String(currentInstalacao.id);
+        document.getElementById('detail-id-cliente').value = String(currentInstalacao.clienteId || '');
+        document.getElementById('detail-card-instalador').textContent = currentInstalacao.instalador || '-';
+        document.getElementById('detail-card-operador').textContent = 'Não informado';
+        document.getElementById('detail-card-acesso').textContent = currentInstalacao.ultimoAcesso || '-';
+        document.getElementById('detail-card-status').textContent = currentInstalacao.status || '-';
+
+        const processo = await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/processo-seletivo`, {
+            method: 'GET'
+        });
+        document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
+        document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
+        document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
+
+        await renderHistory();
+        renderDocumentosDetalhe();
+    } catch (error) {
+        console.error('Erro ao atualizar detalhe da instalação:', error);
     }
 }
 
