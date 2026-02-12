@@ -150,6 +150,15 @@ function parseInstalacaoId(value) {
     return Number.isNaN(rawId) ? null : rawId;
 }
 
+function isEditingProcessoFields() {
+    const activeId = document.activeElement?.id || '';
+    return (
+        activeId === 'detail-link-url' ||
+        activeId === 'detail-link-status' ||
+        activeId === 'detail-toggle-emparelhar'
+    );
+}
+
 function updateInstalacaoOptions() {
     const select = document.getElementById('form-notif-instalacao');
     if (!select) return;
@@ -898,9 +907,11 @@ async function openInstalacao(instId) {
             const processo = await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/processo-seletivo`, {
                 method: 'GET'
             });
-            document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
-            document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
-            document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
+            if (!isEditingProcessoFields()) {
+                document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
+                document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
+                document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
+            }
             updateDetalhePermissoes();
         } catch (error) {
             console.error('Erro ao carregar processo seletivo:', error);
@@ -936,9 +947,11 @@ async function refreshDetalheInstalacao(showAlert = false) {
         const processo = await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/processo-seletivo`, {
             method: 'GET'
         });
-        document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
-        document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
-        document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
+        if (!isEditingProcessoFields()) {
+            document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
+            document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
+            document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
+        }
         updateDetalhePermissoes();
 
         await renderHistory();
