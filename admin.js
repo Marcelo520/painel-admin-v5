@@ -810,7 +810,6 @@ function renderInstalacoes() {
             <td>${inst.cliente}</td>
             <td>${inst.email}</td>
             <td>${inst.instalador}</td>
-            <td>${inst.banco === 'link-sem' ? 'Link Sem' : 'Bradesco'}</td>
             <td>${inst.dataInstalacao}</td>
             <td>${inst.ultimoAcesso}</td>
             <td><span class="status-badge ${statusClass}">${inst.status}</span></td>
@@ -863,7 +862,6 @@ function filterInstalacoes() {
             <td>${inst.cliente}</td>
             <td>${inst.email}</td>
             <td>${inst.instalador}</td>
-            <td>${inst.banco === 'link-sem' ? 'Link Sem' : 'Bradesco'}</td>
             <td>${inst.dataInstalacao}</td>
             <td>${inst.ultimoAcesso}</td>
             <td><span class="status-badge ${statusClass}">${inst.status}</span></td>
