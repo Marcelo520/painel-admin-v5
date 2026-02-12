@@ -289,7 +289,9 @@ function getAuthToken() {
 }
 
 function getAuthRole() {
-    return localStorage.getItem(AUTH_ROLE_KEY) || 'admin';
+    const rawRole = localStorage.getItem(AUTH_ROLE_KEY);
+    if (!rawRole) return 'admin';
+    return String(rawRole).trim().toLowerCase();
 }
 
 function isAdmin() {
@@ -305,7 +307,9 @@ function isInstalador() {
 }
 
 function isAdminOrOperador() {
-    return isAdmin() || isOperador();
+    // Regra de segurança: somente instalador é restrito neste contexto.
+    // Qualquer outro papel permanece com acesso de gestão.
+    return !isInstalador();
 }
 
 function applyRoleUI() {
