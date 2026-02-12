@@ -537,7 +537,7 @@ function showPage(pageName) {
         'instalacoes': 'Instalações',
         'detalhe-instalacao': 'Detalhe da Instalação',
         'documentos': 'Documentos',
-        'notificacoes': 'Push Notifications',
+        'notificacoes': 'Notificação push',
         'funcionarios': 'Funcionários'
     };
     document.getElementById('page-title').textContent = titles[pageName] || 'Painel';
@@ -1155,6 +1155,7 @@ function renderNotificacoes() {
             <td>${notif.data}</td>
             <td>
                 <button class="btn btn-primary btn-sm" onclick="editNotificacao(${notif.id})">Editar</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteNotificacao(${notif.id})">Excluir</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -1223,6 +1224,41 @@ function editNotificacao(notifId) {
 function selectAllNotif(checkbox) {
     const checkboxes = document.querySelectorAll('.row-checkbox-notif');
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
+async function deleteNotificacao(notifId) {
+    if (!confirm('Tem certeza que deseja excluir esta notificação push?')) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/notificacoes/${notifId}`, { method: 'DELETE' });
+        await loadNotificacoes();
+        alert('Notificação push excluída com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao excluir notificação push.');
+    }
+}
+
+async function deleteSelectedNotificacoes() {
+    const selected = document.querySelectorAll('.row-checkbox-notif:checked');
+    if (selected.length === 0) {
+        alert('Selecione pelo menos uma notificação push!');
+        return;
+    }
+
+    if (!confirm(`Tem certeza que deseja excluir ${selected.length} notificação(ões) push?`)) {
+        return;
+    }
+
+    try {
+        const ids = Array.from(selected).map((cb) => parseInt(cb.value, 10)).filter((id) => !Number.isNaN(id));
+        await Promise.all(ids.map((id) => apiRequest(`/api/notificacoes/${id}`, { method: 'DELETE' })));
+        await loadNotificacoes();
+        alert('Notificações push excluídas com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao excluir notificações push.');
+    }
 }
 
 function sortNotificacoes(column) {

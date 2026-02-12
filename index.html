@@ -57,7 +57,7 @@
                 <div class="nav-section">
                     <h3>Comunicação</h3>
                     <ul>
-                        <li><a href="#" onclick="showPage('notificacoes')" class="nav-link">Push Notifications</a></li>
+                        <li><a href="#" onclick="showPage('notificacoes')" class="nav-link">Notificação push</a></li>
                     </ul>
                 </div>
 
@@ -323,6 +323,7 @@
                         <div class="toolbar">
                             <button class="btn btn-primary" onclick="openModalNotificacao()">+ Criar</button>
                             <button class="btn btn-secondary" onclick="exportData('notificacoes')">Exportar</button>
+                            <button class="btn btn-secondary" onclick="deleteSelectedNotificacoes()">Deletar Selecionados</button>
                         </div>
                     </div>
 
@@ -468,7 +469,7 @@
     <div id="modal-notificacao" class="modal">
         <div class="modal-content modal-notificacao">
             <span class="close" onclick="closeModal('modal-notificacao')">&times;</span>
-            <h2>Criar Notificacao Push</h2>
+            <h2>Criar Notificação push</h2>
             <form onsubmit="saveNotificacao(event)">
                 <div class="form-group">
                     <label>Instalacao *</label>
