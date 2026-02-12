@@ -536,7 +536,6 @@ function showPage(pageName) {
         'clientes': 'Clientes',
         'instalacoes': 'Instalações',
         'detalhe-instalacao': 'Detalhe da Instalação',
-        'codigo-c6': 'Código C6',
         'documentos': 'Documentos',
         'notificacoes': 'Push Notifications',
         'funcionarios': 'Funcionários'
