@@ -300,14 +300,43 @@ function isOperador() {
     return getAuthRole() === 'operador';
 }
 
+function isInstalador() {
+    return getAuthRole() === 'instalador';
+}
+
 function isAdminOrOperador() {
     return isAdmin() || isOperador();
 }
 
 function applyRoleUI() {
-    document.body.classList.toggle('role-installer', !isAdminOrOperador());
+    document.body.classList.toggle('role-installer', isInstalador());
     document.body.classList.toggle('role-operator', isOperador());
     document.body.classList.toggle('role-admin', isAdmin());
+    updateDetalhePermissoes();
+}
+
+function updateDetalhePermissoes() {
+    const podeGerenciarEmparelhamento = isAdminOrOperador();
+    const linkInput = document.getElementById('detail-link-url');
+    const statusSelect = document.getElementById('detail-link-status');
+    const toggleEmparelhar = document.getElementById('detail-toggle-emparelhar');
+    const saveButton = document.getElementById('detail-save-btn');
+
+    if (linkInput) {
+        linkInput.readOnly = !podeGerenciarEmparelhamento;
+        linkInput.title = podeGerenciarEmparelhamento ? '' : 'Acesso restrito!';
+    }
+    if (statusSelect) {
+        statusSelect.disabled = !podeGerenciarEmparelhamento;
+        statusSelect.title = podeGerenciarEmparelhamento ? '' : 'Acesso restrito!';
+    }
+    if (toggleEmparelhar) {
+        toggleEmparelhar.disabled = !podeGerenciarEmparelhamento;
+        toggleEmparelhar.title = podeGerenciarEmparelhamento ? '' : 'Acesso restrito!';
+    }
+    if (saveButton) {
+        saveButton.title = podeGerenciarEmparelhamento ? '' : 'Acesso restrito!';
+    }
 }
 
 function showLogin() {
@@ -868,6 +897,7 @@ async function openInstalacao(instId) {
             document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
             document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
             document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
+            updateDetalhePermissoes();
         } catch (error) {
             console.error('Erro ao carregar processo seletivo:', error);
         }
@@ -905,6 +935,7 @@ async function refreshDetalheInstalacao(showAlert = false) {
         document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
         document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
         document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
+        updateDetalhePermissoes();
 
         await renderHistory();
         renderDocumentosDetalhe();
@@ -1041,6 +1072,11 @@ async function updateDocumentoStatus(docId, status) {
 }
 
 async function saveDetail() {
+    if (!isAdminOrOperador()) {
+        alert('Acesso restrito!');
+        return;
+    }
+
     if (!currentInstalacao?.clienteId) {
         alert('Instalacao invalida para salvar.');
         return;
