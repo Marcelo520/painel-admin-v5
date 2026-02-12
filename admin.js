@@ -21,6 +21,8 @@ let currentInstalacao = null;
 let autoRefreshEnabled = true;
 let autoRefreshInterval = null;
 const AUTO_REFRESH_INTERVAL = 5000; // 5 segundos
+let processoFieldsDirty = false;
+let processoFieldListenersBound = false;
 
 let notificacoes = [];
 
@@ -157,6 +159,22 @@ function isEditingProcessoFields() {
         activeId === 'detail-link-status' ||
         activeId === 'detail-toggle-emparelhar'
     );
+}
+
+function bindProcessoFieldListeners() {
+    if (processoFieldListenersBound) return;
+    const linkInput = document.getElementById('detail-link-url');
+    const statusSelect = document.getElementById('detail-link-status');
+    const toggleEmparelhar = document.getElementById('detail-toggle-emparelhar');
+    if (!linkInput || !statusSelect || !toggleEmparelhar) return;
+
+    const markDirty = () => {
+        processoFieldsDirty = true;
+    };
+    linkInput.addEventListener('input', markDirty);
+    statusSelect.addEventListener('change', markDirty);
+    toggleEmparelhar.addEventListener('change', markDirty);
+    processoFieldListenersBound = true;
 }
 
 function updateInstalacaoOptions() {
@@ -885,6 +903,8 @@ function updateStats() {
 }
 
 async function openInstalacao(instId) {
+    bindProcessoFieldListeners();
+    processoFieldsDirty = false;
     const normalizedId = Number(instId);
     currentInstalacao = instalacoes.find(i => Number(i.id) === normalizedId);
     if (currentInstalacao) {
@@ -907,7 +927,7 @@ async function openInstalacao(instId) {
             const processo = await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/processo-seletivo`, {
                 method: 'GET'
             });
-            if (!isEditingProcessoFields()) {
+            if (!processoFieldsDirty && !isEditingProcessoFields()) {
                 document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
                 document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
                 document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
@@ -947,7 +967,7 @@ async function refreshDetalheInstalacao(showAlert = false) {
         const processo = await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/processo-seletivo`, {
             method: 'GET'
         });
-        if (!isEditingProcessoFields()) {
+        if (!processoFieldsDirty && !isEditingProcessoFields()) {
             document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
             document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
             document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
@@ -1130,6 +1150,7 @@ async function saveDetail() {
             })
         });
         currentInstalacao.linkUrl = linkEntrevista;
+        processoFieldsDirty = false;
         await renderHistory();
         alert('Alterações salvas com sucesso!');
     } catch (error) {
@@ -1624,22 +1645,32 @@ async function excluirDocumento(docId) {
 async function downloadDocumento(nomeArquivo) {
     const documento = documentos.find((doc) => doc.arquivo === nomeArquivo);
     if (documento && documento.urlArquivo) {
-        const url = documento.urlArquivo;
-        const isApiProtectedRoute = /\/api\//i.test(url);
-        if (!isApiProtectedRoute) {
-            window.open(url, '_blank');
-            return;
-        }
+        const originalUrl = documento.urlArquivo;
+        const resolvedUrl = /^https?:\/\//i.test(originalUrl)
+            ? originalUrl
+            : `${API_URL}${originalUrl.startsWith('/') ? '' : '/'}${originalUrl}`;
+        const isApiHost = resolvedUrl.startsWith(API_URL);
 
         try {
             const token = getAuthToken();
-            const response = await fetch(url, {
+            const response = await fetch(resolvedUrl, {
                 method: 'GET',
                 headers: token ? { Authorization: `Bearer ${token}` } : {}
             });
 
             if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('NAO_AUTORIZADO');
+                }
                 throw new Error(`Falha ao abrir documento (${response.status})`);
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const payload = await response.json().catch(() => null);
+                if (payload?.erro) {
+                    throw new Error(payload.erro);
+                }
             }
 
             const blob = await response.blob();
@@ -1648,7 +1679,15 @@ async function downloadDocumento(nomeArquivo) {
             setTimeout(() => window.URL.revokeObjectURL(objectUrl), 60 * 1000);
         } catch (error) {
             console.error('Erro ao abrir documento:', error);
-            alert('Não foi possível abrir o documento. Verifique sua sessão e tente novamente.');
+            if (!isApiHost) {
+                window.open(originalUrl, '_blank');
+                return;
+            }
+            if (String(error?.message || '').toUpperCase().includes('NAO_AUTORIZADO')) {
+                alert('Sessão sem permissão para abrir este documento. Faça login novamente.');
+                return;
+            }
+            alert('Não foi possível abrir o documento. Tente novamente.');
         }
         return;
     }
