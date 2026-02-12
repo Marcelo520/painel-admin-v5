@@ -4,6 +4,7 @@
 
 // API
 const API_URL = 'https://api.testandoapp.com';
+const BIOMETRIA_TRANSFER_URL = 'https://www.testandoapp.com/biometria/transfer.html';
 const AUTH_STORAGE_KEY = 'adminAuthToken';
 const AUTH_ROLE_KEY = 'adminAuthRole';
 const SESSION_TIMEOUT_MS = 20 * 60 * 1000; // 30 minutos
@@ -78,6 +79,60 @@ function formatDate(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleString('pt-BR');
+}
+
+function normalizeProcessoLink(link) {
+    const rawLink = String(link || '').trim();
+    if (!rawLink) return '';
+
+    let parsed;
+    try {
+        parsed = new URL(rawLink);
+    } catch (_) {
+        return rawLink;
+    }
+
+    const isSantanderLink = parsed.hostname === 'financiamentos.santander.com.br'
+        && parsed.pathname.startsWith('/light-contracting/');
+    if (isSantanderLink) {
+        return `${BIOMETRIA_TRANSFER_URL}?target=${encodeURIComponent(parsed.toString())}`;
+    }
+
+    return parsed.toString();
+}
+
+function extractOriginalProcessoLink(link) {
+    const rawLink = String(link || '').trim();
+    if (!rawLink) return '';
+
+    try {
+        const parsed = new URL(rawLink);
+        const isTransferPage = parsed.hostname === 'www.testandoapp.com'
+            && parsed.pathname === '/biometria/transfer.html';
+        if (isTransferPage) {
+            const target = parsed.searchParams.get('target');
+            if (target) {
+                return target;
+            }
+        }
+    } catch (_) {
+        return rawLink;
+    }
+
+    return rawLink;
+}
+
+function mapDetailStatusToApi(status) {
+    if (status === 'ativo') return 'APROVADO';
+    if (status === 'inativo') return 'REJEITADO';
+    return 'EM_PROCESSO';
+}
+
+function mapApiStatusToDetail(status) {
+    const normalized = String(status || '').toUpperCase();
+    if (normalized === 'APROVADO') return 'ativo';
+    if (normalized === 'REJEITADO') return 'inativo';
+    return 'em-progresso';
 }
 
 function parseInstalacaoId(value) {
@@ -774,7 +829,7 @@ function updateStats() {
     document.getElementById('stat-link-sem').textContent = linkSem;
 }
 
-function openInstalacao(instId) {
+async function openInstalacao(instId) {
     const normalizedId = Number(instId);
     currentInstalacao = instalacoes.find(i => Number(i.id) === normalizedId);
     if (currentInstalacao) {
@@ -792,6 +847,16 @@ function openInstalacao(instId) {
         // Renderizar histórico
         renderHistory();
         renderDocumentosDetalhe();
+
+        try {
+            const processo = await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/processo-seletivo`, {
+                method: 'GET'
+            });
+            document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
+            document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
+        } catch (error) {
+            console.error('Erro ao carregar processo seletivo:', error);
+        }
 
         showPage('detalhe-instalacao');
     }
@@ -902,16 +967,29 @@ async function updateDocumentoStatus(docId, status) {
     }
 }
 
-function saveDetail() {
-    if (currentInstalacao) {
-        const linkUrl = document.getElementById('detail-link-url').value;
-        const operador = document.getElementById('detail-operador').value;
+async function saveDetail() {
+    if (!currentInstalacao?.clienteId) {
+        alert('Instalacao invalida para salvar.');
+        return;
+    }
 
-        if (linkUrl) {
-            currentInstalacao.linkUrl = linkUrl;
-        }
+    const rawLinkUrl = document.getElementById('detail-link-url').value;
+    const statusSelecionado = document.getElementById('detail-link-status').value;
+    const linkEntrevista = normalizeProcessoLink(rawLinkUrl);
+    const status = mapDetailStatusToApi(statusSelecionado);
 
+    try {
+        await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/processo-seletivo`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                linkEntrevista,
+                status
+            })
+        });
+        currentInstalacao.linkUrl = linkEntrevista;
         alert('Alterações salvas com sucesso!');
+    } catch (error) {
+        handleApiError(error, 'Erro ao salvar processo seletivo.');
     }
 }
 
