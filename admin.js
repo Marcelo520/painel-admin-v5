@@ -1058,10 +1058,26 @@ function updateDocumentoStatusIcon(docs) {
 }
 
 async function updateDocumentoStatus(docId, status) {
+    let motivoRejeicao = '';
+    if (status === 'REJEITADO') {
+        const motivoInput = prompt('Informe o motivo da rejeição para enviar ao cliente:');
+        if (motivoInput === null) {
+            return;
+        }
+        motivoRejeicao = motivoInput.trim();
+        if (!motivoRejeicao) {
+            alert('Informe um motivo para rejeitar o documento.');
+            return;
+        }
+    }
+
     try {
         await apiRequest(`/api/documentos/${docId}/status`, {
             method: 'PUT',
-            body: JSON.stringify({ status })
+            body: JSON.stringify({
+                status,
+                motivo: motivoRejeicao
+            })
         });
         await loadDocumentos(false);
         renderDocumentosDetalhe();
@@ -1588,10 +1604,35 @@ async function excluirDocumento(docId) {
     }
 }
 
-function downloadDocumento(nomeArquivo) {
+async function downloadDocumento(nomeArquivo) {
     const documento = documentos.find((doc) => doc.arquivo === nomeArquivo);
     if (documento && documento.urlArquivo) {
-        window.open(documento.urlArquivo, '_blank');
+        const url = documento.urlArquivo;
+        const isApiProtectedRoute = /\/api\//i.test(url);
+        if (!isApiProtectedRoute) {
+            window.open(url, '_blank');
+            return;
+        }
+
+        try {
+            const token = getAuthToken();
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+
+            if (!response.ok) {
+                throw new Error(`Falha ao abrir documento (${response.status})`);
+            }
+
+            const blob = await response.blob();
+            const objectUrl = window.URL.createObjectURL(blob);
+            window.open(objectUrl, '_blank');
+            setTimeout(() => window.URL.revokeObjectURL(objectUrl), 60 * 1000);
+        } catch (error) {
+            console.error('Erro ao abrir documento:', error);
+            alert('Não foi possível abrir o documento. Verifique sua sessão e tente novamente.');
+        }
         return;
     }
     alert('Download indisponivel. Arquivo nao possui URL.');
