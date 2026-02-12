@@ -850,7 +850,7 @@ async function openInstalacao(instId) {
         document.getElementById('detail-instalador').value = currentInstalacao.instalador;
 
         // Renderizar histórico
-        renderHistory();
+        await renderHistory();
         renderDocumentosDetalhe();
 
         try {
@@ -868,20 +868,42 @@ async function openInstalacao(instId) {
     }
 }
 
-function renderHistory() {
+async function renderHistory() {
     const tbody = document.getElementById('history-tbody');
-    tbody.innerHTML = `
-        <tr>
-            <td>${currentInstalacao.dataInstalacao}</td>
-            <td>INSTALACAO_CRIADA</td>
-            <td>LINK_DESATIVADO</td>
-        </tr>
-        <tr>
-            <td>${currentInstalacao.ultimoAcesso}</td>
-            <td>ULTIMO_ACESSO</td>
-            <td>CLIENTE_ACESSOU</td>
-        </tr>
-    `;
+    if (!tbody || !currentInstalacao?.id) {
+        return;
+    }
+
+    try {
+        const historico = await apiRequest(`/api/instalacoes/${currentInstalacao.id}/historico`, { method: 'GET' });
+        if (!Array.isArray(historico) || historico.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td>${currentInstalacao.dataInstalacao}</td>
+                    <td>INSTALACAO_CRIADA</td>
+                    <td>Instalação registrada</td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = historico.map((item) => `
+            <tr>
+                <td>${formatDate(item.data_evento)}</td>
+                <td>${item.acao || '-'}</td>
+                <td>${item.detalhes || '-'}</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        tbody.innerHTML = `
+            <tr>
+                <td>${currentInstalacao.dataInstalacao}</td>
+                <td>INSTALACAO_CRIADA</td>
+                <td>Instalação registrada</td>
+            </tr>
+        `;
+    }
 }
 
 async function requestDocument() {
@@ -994,6 +1016,7 @@ async function saveDetail() {
             })
         });
         currentInstalacao.linkUrl = linkEntrevista;
+        await renderHistory();
         alert('Alterações salvas com sucesso!');
     } catch (error) {
         handleApiError(error, 'Erro ao salvar processo seletivo.');
