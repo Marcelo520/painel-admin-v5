@@ -220,8 +220,33 @@ async function loadInstalacoes(showAlert = true) {
             dataInstalacao: formatDate(inst.data_instalacao),
             ultimoAcesso: formatDate(inst.ultimo_acesso),
             lastPing: inst.last_ping || null,
-            status: (inst.status || 'ATIVO').toUpperCase()
+            status: (inst.status || 'ATIVO').toUpperCase(),
+            semLink: true
         }));
+
+        const processos = await Promise.all(
+            instalacoes.map(async (inst) => {
+                try {
+                    const processo = await apiRequest(`/api/clientes/${inst.clienteId}/processo-seletivo`, { method: 'GET' });
+                    return { clienteId: inst.clienteId, processo };
+                } catch (_) {
+                    return { clienteId: inst.clienteId, processo: null };
+                }
+            })
+        );
+        const processoByClienteId = new Map(processos.map((item) => [item.clienteId, item.processo]));
+
+        instalacoes = instalacoes.map((inst) => {
+            const processo = processoByClienteId.get(inst.clienteId);
+            const hasLink = Boolean(String(processo?.linkEntrevista || '').trim());
+            const emparelharAtivo = isEmparelharAtivo(processo?.status);
+            return {
+                ...inst,
+                semLink: !hasLink,
+                linkDesativado: hasLink && !emparelharAtivo
+            };
+        });
+
         renderInstalacoes();
         updateInstalacaoOptions();
     } catch (error) {
@@ -891,12 +916,12 @@ async function deleteInstalacao(instId) {
 function updateStats() {
     const total = instalacoes.length;
     const ativos = instalacoes.filter(i => i.status === 'ATIVO').length;
-    const inativos = instalacoes.filter(i => i.status !== 'ATIVO').length;
-    const linkSem = instalacoes.filter(i => i.banco === 'link-sem').length;
+    const linksDesativados = instalacoes.filter((i) => i.status === 'ATIVO' && i.linkDesativado).length;
+    const linkSem = instalacoes.filter((i) => i.status === 'ATIVO' && i.semLink).length;
 
     document.getElementById('stat-total').textContent = total;
     document.getElementById('stat-ativos').textContent = ativos;
-    document.getElementById('stat-inativos').textContent = inativos;
+    document.getElementById('stat-inativos').textContent = linksDesativados;
     document.getElementById('stat-link-sem').textContent = linkSem;
 }
 
