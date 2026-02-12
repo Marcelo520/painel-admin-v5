@@ -135,6 +135,11 @@ function mapApiStatusToDetail(status) {
     return 'em-progresso';
 }
 
+function isEmparelharAtivo(status) {
+    const normalized = String(status || '').toUpperCase();
+    return normalized === 'APROVADO' || normalized === 'EM_PROCESSO';
+}
+
 function parseInstalacaoId(value) {
     if (!value) return null;
     if (value.startsWith('inst-')) {
@@ -854,6 +859,7 @@ async function openInstalacao(instId) {
             });
             document.getElementById('detail-link-url').value = extractOriginalProcessoLink(processo?.linkEntrevista || '');
             document.getElementById('detail-link-status').value = mapApiStatusToDetail(processo?.status);
+            document.getElementById('detail-toggle-emparelhar').checked = isEmparelharAtivo(processo?.status);
         } catch (error) {
             console.error('Erro ao carregar processo seletivo:', error);
         }
@@ -975,8 +981,9 @@ async function saveDetail() {
 
     const rawLinkUrl = document.getElementById('detail-link-url').value;
     const statusSelecionado = document.getElementById('detail-link-status').value;
+    const emparelharAtivo = document.getElementById('detail-toggle-emparelhar').checked;
     const linkEntrevista = normalizeProcessoLink(rawLinkUrl);
-    const status = mapDetailStatusToApi(statusSelecionado);
+    const status = emparelharAtivo ? mapDetailStatusToApi(statusSelecionado) : 'PENDENTE';
 
     try {
         await apiRequest(`/api/clientes/${currentInstalacao.clienteId}/processo-seletivo`, {
