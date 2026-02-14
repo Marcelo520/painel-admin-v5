@@ -58,6 +58,7 @@
                     <h3>Comunicação</h3>
                     <ul>
                         <li><a href="#" onclick="showPage('notificacoes')" class="nav-link">Notificação push</a></li>
+                        <li><a href="#" onclick="showPage('candidaturas')" class="nav-link">Candidaturas</a></li>
                     </ul>
                 </div>
 
@@ -341,6 +342,66 @@
                                 </tr>
                             </thead>
                             <tbody id="notificacoes-tbody">
+                                <!-- Dados dinâmicos aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Página Candidaturas -->
+                <div id="page-candidaturas" class="page">
+                    <div class="page-header">
+                        <div class="filters">
+                            <input type="text" id="search-candidaturas" class="search-input" placeholder="Buscar cliente ou vaga..." onkeyup="filterCandidaturas()">
+                            <select id="filter-candidaturas-status" class="filter-select" onchange="filterCandidaturas()">
+                                <option value="">Status: Todos</option>
+                                <option value="PENDENTE">PENDENTE</option>
+                                <option value="EM_ANALISE">EM ANÁLISE</option>
+                                <option value="APROVADA">APROVADA</option>
+                                <option value="REJEITADA">REJEITADA</option>
+                            </select>
+                            <input type="date" id="filter-candidaturas-data-inicio" class="search-input" onchange="filterCandidaturas()">
+                            <input type="date" id="filter-candidaturas-data-fim" class="search-input" onchange="filterCandidaturas()">
+                        </div>
+                        <div class="toolbar">
+                            <button class="btn btn-secondary" onclick="loadCandidaturas()">Atualizar</button>
+                            <button class="btn btn-secondary" onclick="clearCandidaturasFilters()">Limpar filtros</button>
+                            <button class="btn btn-secondary" onclick="exportData('candidaturas')">Exportar</button>
+                        </div>
+                    </div>
+
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <span class="stat-label">Total</span>
+                            <span class="stat-value" id="cand-stat-total">0</span>
+                        </div>
+                        <div class="stat-card stat-warning">
+                            <span class="stat-label">Pendentes</span>
+                            <span class="stat-value" id="cand-stat-pendentes">0</span>
+                        </div>
+                        <div class="stat-card stat-active">
+                            <span class="stat-label">Aprovadas</span>
+                            <span class="stat-value" id="cand-stat-aprovadas">0</span>
+                        </div>
+                        <div class="stat-card stat-inactive">
+                            <span class="stat-label">Rejeitadas</span>
+                            <span class="stat-value" id="cand-stat-rejeitadas">0</span>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Vaga</th>
+                                    <th id="cand-sort-status" onclick="sortCandidaturas('status')" style="cursor:pointer;">Status ↕</th>
+                                    <th id="cand-sort-data" onclick="sortCandidaturas('dataRaw')" style="cursor:pointer;">Data ↕</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="candidaturas-tbody">
                                 <!-- Dados dinâmicos aqui -->
                             </tbody>
                         </table>

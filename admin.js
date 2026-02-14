@@ -25,6 +25,8 @@ let processoFieldsDirty = false;
 let processoFieldListenersBound = false;
 
 let notificacoes = [];
+let candidaturas = [];
+let candidaturasSort = { column: 'dataRaw', direction: 'desc' };
 
 let operadores = [];
 
@@ -328,6 +330,7 @@ function initApp() {
     loadClientes();
     loadInstalacoes();
     loadNotificacoes();
+    loadCandidaturas();
     loadOperadores();
     loadDocumentos();
 }
@@ -559,6 +562,8 @@ function refreshCurrentPage() {
         refreshDetalheInstalacao(false);
     } else if (currentPage === 'notificacoes') {
         loadNotificacoes(false);
+    } else if (currentPage === 'candidaturas') {
+        loadCandidaturas(false);
     } else if (currentPage === 'funcionarios') {
         loadOperadores(false);
     } else if (currentPage === 'documentos') {
@@ -623,6 +628,7 @@ function showPage(pageName) {
         'detalhe-instalacao': 'Detalhe da Instalação',
         'documentos': 'Documentos',
         'notificacoes': 'Notificação push',
+        'candidaturas': 'Candidaturas',
         'funcionarios': 'Funcionários'
     };
     document.getElementById('page-title').textContent = titles[pageName] || 'Painel';
@@ -638,6 +644,8 @@ function showPage(pageName) {
     // Carga imediata ao entrar na pagina, sem esperar o ciclo de 5s
     if (pageName === 'documentos') {
         loadDocumentos(false);
+    } else if (pageName === 'candidaturas') {
+        loadCandidaturas(false);
     } else if (pageName === 'detalhe-instalacao') {
         refreshDetalheInstalacao(false);
     }
@@ -1213,6 +1221,9 @@ function exportData(type) {
     } else if (type === 'notificacoes') {
         data = notificacoes;
         filename = 'notificacoes.csv';
+    } else if (type === 'candidaturas') {
+        data = candidaturas;
+        filename = 'candidaturas.csv';
     } else if (type === 'operadores') {
         data = operadores;
         filename = 'operadores.csv';
@@ -1251,6 +1262,168 @@ function exportData(type) {
 // ============================================
 // NOTIFICACOES PUSH
 // ============================================
+
+async function loadCandidaturas(showAlert = true) {
+    try {
+        const data = await apiRequest('/api/candidaturas');
+        candidaturas = (data || []).map((item) => ({
+            id: item.id,
+            cliente: item.cliente_nome || '-',
+            vaga: item.titulo_vaga || '-',
+            status: (item.status || 'PENDENTE').toUpperCase(),
+            data: formatDate(item.data_candidatura),
+            dataRaw: item.data_candidatura || ''
+        }));
+        filterCandidaturas();
+    } catch (error) {
+        handleApiError(error, 'Erro ao carregar candidaturas.', showAlert);
+    }
+}
+
+function renderCandidaturas(lista = candidaturas) {
+    const tbody = document.getElementById('candidaturas-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    lista.forEach((cand) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${cand.id}</td>
+            <td>${cand.cliente}</td>
+            <td>${cand.vaga}</td>
+            <td><span class="status-badge status-${cand.status.toLowerCase()}">${cand.status}</span></td>
+            <td>${cand.data}</td>
+            <td>
+                <select onchange="updateCandidaturaStatus(${cand.id}, this.value)">
+                    <option value="PENDENTE" ${cand.status === 'PENDENTE' ? 'selected' : ''}>PENDENTE</option>
+                    <option value="EM_ANALISE" ${cand.status === 'EM_ANALISE' ? 'selected' : ''}>EM ANÁLISE</option>
+                    <option value="APROVADA" ${cand.status === 'APROVADA' ? 'selected' : ''}>APROVADA</option>
+                    <option value="REJEITADA" ${cand.status === 'REJEITADA' ? 'selected' : ''}>REJEITADA</option>
+                </select>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    updateCandidaturasStats(lista);
+    updateCandidaturasSortIndicators();
+}
+
+function filterCandidaturas() {
+    const search = (document.getElementById('search-candidaturas')?.value || '').trim().toLowerCase();
+    const status = (document.getElementById('filter-candidaturas-status')?.value || '').trim().toUpperCase();
+    const dataInicio = document.getElementById('filter-candidaturas-data-inicio')?.value || '';
+    const dataFim = document.getElementById('filter-candidaturas-data-fim')?.value || '';
+
+    const inicioTime = dataInicio ? new Date(`${dataInicio}T00:00:00`).getTime() : null;
+    const fimTime = dataFim ? new Date(`${dataFim}T23:59:59`).getTime() : null;
+
+    const filtradas = candidaturas.filter((cand) => {
+        const cliente = String(cand.cliente || '').toLowerCase();
+        const vaga = String(cand.vaga || '').toLowerCase();
+        const matchBusca = !search || cliente.includes(search) || vaga.includes(search);
+        const matchStatus = !status || cand.status === status;
+
+        let matchData = true;
+        if (inicioTime !== null || fimTime !== null) {
+            const candTime = cand.dataRaw ? new Date(cand.dataRaw).getTime() : NaN;
+            if (Number.isNaN(candTime)) {
+                matchData = false;
+            } else {
+                if (inicioTime !== null && candTime < inicioTime) matchData = false;
+                if (fimTime !== null && candTime > fimTime) matchData = false;
+            }
+        }
+
+        return matchBusca && matchStatus && matchData;
+    });
+
+    const ordenadas = applyCandidaturasSort(filtradas);
+    renderCandidaturas(ordenadas);
+}
+
+function clearCandidaturasFilters() {
+    const searchEl = document.getElementById('search-candidaturas');
+    const statusEl = document.getElementById('filter-candidaturas-status');
+    const inicioEl = document.getElementById('filter-candidaturas-data-inicio');
+    const fimEl = document.getElementById('filter-candidaturas-data-fim');
+    if (searchEl) searchEl.value = '';
+    if (statusEl) statusEl.value = '';
+    if (inicioEl) inicioEl.value = '';
+    if (fimEl) fimEl.value = '';
+    filterCandidaturas();
+}
+
+function sortCandidaturas(column) {
+    if (candidaturasSort.column === column) {
+        candidaturasSort.direction = candidaturasSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        candidaturasSort.column = column;
+        candidaturasSort.direction = column === 'dataRaw' ? 'desc' : 'asc';
+    }
+    filterCandidaturas();
+}
+
+function applyCandidaturasSort(lista) {
+    const { column, direction } = candidaturasSort;
+    const fator = direction === 'asc' ? 1 : -1;
+    return [...lista].sort((a, b) => {
+        if (column === 'dataRaw') {
+            const ta = a.dataRaw ? new Date(a.dataRaw).getTime() : 0;
+            const tb = b.dataRaw ? new Date(b.dataRaw).getTime() : 0;
+            return (ta - tb) * fator;
+        }
+
+        const va = String(a[column] || '').toUpperCase();
+        const vb = String(b[column] || '').toUpperCase();
+        return va.localeCompare(vb) * fator;
+    });
+}
+
+function updateCandidaturasSortIndicators() {
+    const statusHeader = document.getElementById('cand-sort-status');
+    const dataHeader = document.getElementById('cand-sort-data');
+    if (!statusHeader || !dataHeader) return;
+
+    statusHeader.textContent = 'Status ↕';
+    dataHeader.textContent = 'Data ↕';
+
+    if (candidaturasSort.column === 'status') {
+        statusHeader.textContent = candidaturasSort.direction === 'asc' ? 'Status ↑' : 'Status ↓';
+    }
+    if (candidaturasSort.column === 'dataRaw') {
+        dataHeader.textContent = candidaturasSort.direction === 'asc' ? 'Data ↑' : 'Data ↓';
+    }
+}
+
+function updateCandidaturasStats(lista = candidaturas) {
+    const total = lista.length;
+    const pendentes = lista.filter((c) => c.status === 'PENDENTE').length;
+    const aprovadas = lista.filter((c) => c.status === 'APROVADA').length;
+    const rejeitadas = lista.filter((c) => c.status === 'REJEITADA').length;
+
+    const totalEl = document.getElementById('cand-stat-total');
+    const pendEl = document.getElementById('cand-stat-pendentes');
+    const aprEl = document.getElementById('cand-stat-aprovadas');
+    const rejEl = document.getElementById('cand-stat-rejeitadas');
+    if (totalEl) totalEl.textContent = String(total);
+    if (pendEl) pendEl.textContent = String(pendentes);
+    if (aprEl) aprEl.textContent = String(aprovadas);
+    if (rejEl) rejEl.textContent = String(rejeitadas);
+}
+
+async function updateCandidaturaStatus(candidaturaId, status) {
+    try {
+        await apiRequest(`/api/candidaturas/${candidaturaId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status })
+        });
+        await loadCandidaturas(false);
+        showToast('Status da candidatura atualizado.');
+    } catch (error) {
+        handleApiError(error, 'Erro ao atualizar status da candidatura.');
+    }
+}
 
 function renderNotificacoes() {
     const tbody = document.getElementById('notificacoes-tbody');
