@@ -458,6 +458,53 @@ body {
     background-color: #1a1a1a;
 }
 
+.candidaturas-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.candidaturas-col-acoes {
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.candidaturas-acoes .btn-sm {
+    margin-right: 0;
+    flex-shrink: 0;
+}
+
+.candidaturas-acoes .btn-danger {
+    width: 84px;
+    min-width: 84px;
+    text-align: center;
+    padding: 5px 0;
+}
+
+.cand-status-select {
+    width: 148px;
+    min-width: 148px;
+    flex: 0 0 148px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: #1a1a1a;
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.cand-status-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
 .status-badge {
     display: inline-block;
     padding: 5px 12px;
@@ -949,6 +996,27 @@ input:checked + .toggle-slider:before {
     .data-table th,
     .data-table td {
         padding: 10px;
+    }
+
+    .candidaturas-acoes {
+        flex-wrap: wrap;
+    }
+
+    .candidaturas-col-acoes {
+        width: 220px;
+        min-width: 220px;
+        max-width: 220px;
+    }
+
+    .cand-status-select {
+        width: 132px;
+        min-width: 132px;
+        flex: 0 0 132px;
+    }
+
+    .candidaturas-acoes .btn-danger {
+        width: 78px;
+        min-width: 78px;
     }
 
     .document-section {

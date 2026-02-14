@@ -1293,13 +1293,16 @@ function renderCandidaturas(lista = candidaturas) {
             <td>${cand.vaga}</td>
             <td><span class="status-badge status-${cand.status.toLowerCase()}">${cand.status}</span></td>
             <td>${cand.data}</td>
-            <td>
-                <select onchange="updateCandidaturaStatus(${cand.id}, this.value)">
-                    <option value="PENDENTE" ${cand.status === 'PENDENTE' ? 'selected' : ''}>PENDENTE</option>
-                    <option value="EM_ANALISE" ${cand.status === 'EM_ANALISE' ? 'selected' : ''}>EM ANÁLISE</option>
-                    <option value="APROVADA" ${cand.status === 'APROVADA' ? 'selected' : ''}>APROVADA</option>
-                    <option value="REJEITADA" ${cand.status === 'REJEITADA' ? 'selected' : ''}>REJEITADA</option>
-                </select>
+            <td class="candidaturas-col-acoes">
+                <div class="candidaturas-acoes">
+                    <select class="cand-status-select" onchange="updateCandidaturaStatus(${cand.id}, this.value)">
+                        <option value="PENDENTE" ${cand.status === 'PENDENTE' ? 'selected' : ''}>PENDENTE</option>
+                        <option value="EM_ANALISE" ${cand.status === 'EM_ANALISE' ? 'selected' : ''}>EM ANÁLISE</option>
+                        <option value="APROVADA" ${cand.status === 'APROVADA' ? 'selected' : ''}>APROVADA</option>
+                        <option value="REJEITADA" ${cand.status === 'REJEITADA' ? 'selected' : ''}>REJEITADA</option>
+                    </select>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCandidatura(${cand.id})">Excluir</button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -1422,6 +1425,19 @@ async function updateCandidaturaStatus(candidaturaId, status) {
         showToast('Status da candidatura atualizado.');
     } catch (error) {
         handleApiError(error, 'Erro ao atualizar status da candidatura.');
+    }
+}
+
+async function deleteCandidatura(candidaturaId) {
+    if (!confirm('Tem certeza que deseja excluir esta candidatura?')) {
+        return;
+    }
+    try {
+        await apiRequest(`/api/candidaturas/${candidaturaId}`, { method: 'DELETE' });
+        await loadCandidaturas(false);
+        showToast('Candidatura excluída com sucesso.');
+    } catch (error) {
+        handleApiError(error, 'Erro ao excluir candidatura.');
     }
 }
 
