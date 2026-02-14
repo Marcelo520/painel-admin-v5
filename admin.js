@@ -27,6 +27,8 @@ let processoFieldListenersBound = false;
 let notificacoes = [];
 let candidaturas = [];
 let candidaturasSort = { column: 'dataRaw', direction: 'desc' };
+const CANDIDATURAS_LAST_SEEN_KEY = 'candidaturasLastSeenId';
+let candidaturasLastSeenId = Number(localStorage.getItem(CANDIDATURAS_LAST_SEEN_KEY) || '0');
 
 let operadores = [];
 
@@ -1275,9 +1277,52 @@ async function loadCandidaturas(showAlert = true) {
             dataRaw: item.data_candidatura || ''
         }));
         filterCandidaturas();
+        if (currentPage === 'candidaturas') {
+            markCandidaturasAsSeen();
+        } else {
+            updateCandidaturasMenuAlert();
+        }
     } catch (error) {
         handleApiError(error, 'Erro ao carregar candidaturas.', showAlert);
     }
+}
+
+function getCandidaturaNumericId(candidatura) {
+    const raw = Number(candidatura?.id);
+    return Number.isFinite(raw) ? raw : 0;
+}
+
+function getMaxCandidaturaId(lista = candidaturas) {
+    return lista.reduce((maxId, item) => {
+        const id = getCandidaturaNumericId(item);
+        return id > maxId ? id : maxId;
+    }, 0);
+}
+
+function countUnseenCandidaturas(lista = candidaturas) {
+    return lista.filter((item) => getCandidaturaNumericId(item) > candidaturasLastSeenId).length;
+}
+
+function updateCandidaturasMenuAlert() {
+    const badge = document.getElementById('nav-candidaturas-alert');
+    if (!badge) return;
+    const unseen = countUnseenCandidaturas();
+    if (unseen > 0) {
+        badge.textContent = unseen > 99 ? '99+' : String(unseen);
+        badge.style.display = 'inline-block';
+    } else {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+    }
+}
+
+function markCandidaturasAsSeen() {
+    const maxId = getMaxCandidaturaId();
+    if (maxId > candidaturasLastSeenId) {
+        candidaturasLastSeenId = maxId;
+        localStorage.setItem(CANDIDATURAS_LAST_SEEN_KEY, String(candidaturasLastSeenId));
+    }
+    updateCandidaturasMenuAlert();
 }
 
 function renderCandidaturas(lista = candidaturas) {

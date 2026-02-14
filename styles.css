@@ -108,12 +108,27 @@ body {
 }
 
 .nav-link {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 10px 20px;
     color: var(--text-secondary);
     text-decoration: none;
     transition: all 0.3s ease;
     border-left: 3px solid transparent;
+}
+
+.nav-alert-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
 }
 
 .nav-link:hover {
