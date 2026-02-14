@@ -1379,17 +1379,23 @@ function countUnseenClientes(lista = clientes) {
     return lista.filter((item) => getClienteNumericId(item) > clientesLastSeenId).length;
 }
 
-function updateClientesMenuAlert() {
-    const badge = document.getElementById('nav-clientes-alert');
+function applyMenuAlertState(badge, unseen) {
     if (!badge) return;
-    const unseen = countUnseenClientes();
     if (unseen > 0) {
         badge.textContent = unseen > 99 ? '99+' : String(unseen);
         badge.style.display = 'inline-flex';
+        badge.classList.add('is-blinking');
     } else {
         badge.textContent = '0';
         badge.style.display = 'none';
+        badge.classList.remove('is-blinking');
     }
+}
+
+function updateClientesMenuAlert() {
+    const badge = document.getElementById('nav-clientes-alert');
+    const unseen = countUnseenClientes();
+    applyMenuAlertState(badge, unseen);
 }
 
 function markClientesAsSeen() {
@@ -1419,15 +1425,8 @@ function countUnseenInstalacoes(lista = instalacoes) {
 
 function updateInstalacoesMenuAlert() {
     const badge = document.getElementById('nav-instalacoes-alert');
-    if (!badge) return;
     const unseen = countUnseenInstalacoes();
-    if (unseen > 0) {
-        badge.textContent = unseen > 99 ? '99+' : String(unseen);
-        badge.style.display = 'inline-flex';
-    } else {
-        badge.textContent = '0';
-        badge.style.display = 'none';
-    }
+    applyMenuAlertState(badge, unseen);
 }
 
 function markInstalacoesAsSeen() {
@@ -1457,15 +1456,8 @@ function countUnseenCandidaturas(lista = candidaturas) {
 
 function updateCandidaturasMenuAlert() {
     const badge = document.getElementById('nav-candidaturas-alert');
-    if (!badge) return;
     const unseen = countUnseenCandidaturas();
-    if (unseen > 0) {
-        badge.textContent = unseen > 99 ? '99+' : String(unseen);
-        badge.style.display = 'inline-block';
-    } else {
-        badge.textContent = '0';
-        badge.style.display = 'none';
-    }
+    applyMenuAlertState(badge, unseen);
 }
 
 function markCandidaturasAsSeen() {
@@ -1495,15 +1487,8 @@ function countUnseenCurriculos(lista = curriculos) {
 
 function updateCurriculosMenuAlert() {
     const badge = document.getElementById('nav-curriculos-alert');
-    if (!badge) return;
     const unseen = countUnseenCurriculos();
-    if (unseen > 0) {
-        badge.textContent = unseen > 99 ? '99+' : String(unseen);
-        badge.style.display = 'inline-block';
-    } else {
-        badge.textContent = '0';
-        badge.style.display = 'none';
-    }
+    applyMenuAlertState(badge, unseen);
 }
 
 function markCurriculosAsSeen() {

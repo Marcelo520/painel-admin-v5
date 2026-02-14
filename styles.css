@@ -137,6 +137,27 @@ body {
     text-align: center;
 }
 
+.nav-alert-badge.is-blinking {
+    animation: navBadgeBlink 1s ease-in-out infinite;
+}
+
+@keyframes navBadgeBlink {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.45;
+        transform: scale(1.08);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-alert-badge.is-blinking {
+        animation: none;
+    }
+}
+
 .nav-link:hover {
     background-color: var(--bg-card);
     color: var(--text-primary);
