@@ -29,10 +29,13 @@ let candidaturas = [];
 let candidaturasSort = { column: 'dataRaw', direction: 'desc' };
 const CANDIDATURAS_LAST_SEEN_KEY = 'candidaturasLastSeenId';
 let candidaturasLastSeenId = Number(localStorage.getItem(CANDIDATURAS_LAST_SEEN_KEY) || '0');
+const CURRICULOS_LAST_SEEN_KEY = 'curriculosLastSeenId';
+let curriculosLastSeenId = Number(localStorage.getItem(CURRICULOS_LAST_SEEN_KEY) || '0');
 
 let operadores = [];
 
 let documentos = [];
+let curriculos = [];
 
 async function apiRequest(path, options = {}) {
     const {
@@ -301,6 +304,30 @@ async function loadDocumentos(showAlert = true) {
     }
 }
 
+async function loadCurriculos(showAlert = true) {
+    try {
+        const data = await apiRequest('/api/curriculos');
+        curriculos = (data || []).map((item) => ({
+            id: item.id,
+            clienteId: item.cliente_id,
+            cliente: item.cliente_nome || 'Não informado',
+            arquivo: item.nome_arquivo || 'curriculo',
+            urlArquivo: item.url_arquivo || '',
+            data: formatDate(item.data_upload),
+            dataRaw: item.data_upload || '',
+            status: (item.status || 'ENVIADO').toUpperCase()
+        }));
+        renderCurriculos();
+        if (currentPage === 'curriculos') {
+            markCurriculosAsSeen();
+        } else {
+            updateCurriculosMenuAlert();
+        }
+    } catch (error) {
+        handleApiError(error, 'Erro ao carregar curriculos.', showAlert);
+    }
+}
+
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
@@ -335,6 +362,7 @@ function initApp() {
     loadCandidaturas();
     loadOperadores();
     loadDocumentos();
+    loadCurriculos();
 }
 
 function isLoggedIn() {
@@ -570,11 +598,17 @@ function refreshCurrentPage() {
         loadOperadores(false);
     } else if (currentPage === 'documentos') {
         loadDocumentos(false);
+    } else if (currentPage === 'curriculos') {
+        loadCurriculos(false);
     }
 
     // Mantém o alerta de candidaturas atualizado em qualquer tela do painel.
     if (currentPage !== 'candidaturas') {
         loadCandidaturas(false);
+    }
+    // Mantém o alerta de currículos atualizado em qualquer tela do painel.
+    if (currentPage !== 'curriculos') {
+        loadCurriculos(false);
     }
 }
 
@@ -634,6 +668,7 @@ function showPage(pageName) {
         'instalacoes': 'Instalações',
         'detalhe-instalacao': 'Detalhe da Instalação',
         'documentos': 'Documentos',
+        'curriculos': 'Currículos',
         'notificacoes': 'Notificação push',
         'candidaturas': 'Candidaturas',
         'funcionarios': 'Funcionários'
@@ -651,6 +686,8 @@ function showPage(pageName) {
     // Carga imediata ao entrar na pagina, sem esperar o ciclo de 5s
     if (pageName === 'documentos') {
         loadDocumentos(false);
+    } else if (pageName === 'curriculos') {
+        loadCurriculos(false);
     } else if (pageName === 'candidaturas') {
         loadCandidaturas(false);
     } else if (pageName === 'detalhe-instalacao') {
@@ -1237,6 +1274,9 @@ function exportData(type) {
     } else if (type === 'documentos') {
         data = documentos;
         filename = 'documentos.csv';
+    } else if (type === 'curriculos') {
+        data = curriculos;
+        filename = 'curriculos.csv';
     }
 
     if (data.length === 0) {
@@ -1328,6 +1368,87 @@ function markCandidaturasAsSeen() {
         localStorage.setItem(CANDIDATURAS_LAST_SEEN_KEY, String(candidaturasLastSeenId));
     }
     updateCandidaturasMenuAlert();
+}
+
+function getCurriculoNumericId(curriculo) {
+    const raw = Number(curriculo?.id);
+    return Number.isFinite(raw) ? raw : 0;
+}
+
+function getMaxCurriculoId(lista = curriculos) {
+    return lista.reduce((maxId, item) => {
+        const id = getCurriculoNumericId(item);
+        return id > maxId ? id : maxId;
+    }, 0);
+}
+
+function countUnseenCurriculos(lista = curriculos) {
+    return lista.filter((item) => getCurriculoNumericId(item) > curriculosLastSeenId).length;
+}
+
+function updateCurriculosMenuAlert() {
+    const badge = document.getElementById('nav-curriculos-alert');
+    if (!badge) return;
+    const unseen = countUnseenCurriculos();
+    if (unseen > 0) {
+        badge.textContent = unseen > 99 ? '99+' : String(unseen);
+        badge.style.display = 'inline-block';
+    } else {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+    }
+}
+
+function markCurriculosAsSeen() {
+    const maxId = getMaxCurriculoId();
+    if (maxId > curriculosLastSeenId) {
+        curriculosLastSeenId = maxId;
+        localStorage.setItem(CURRICULOS_LAST_SEEN_KEY, String(curriculosLastSeenId));
+    }
+    updateCurriculosMenuAlert();
+}
+
+function renderCurriculos() {
+    const tbody = document.getElementById('curriculos-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    curriculos.forEach((item) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.cliente}</td>
+            <td>${item.arquivo}</td>
+            <td>${item.data}</td>
+            <td><span class="status-badge status-ativo">${item.status}</span></td>
+            <td>
+                <button class="btn btn-secondary btn-sm" onclick="abrirCurriculo('${item.urlArquivo}')">Ver</button>
+                <button class="btn btn-danger btn-sm" onclick="excluirCurriculo(${item.id})">Excluir</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function abrirCurriculo(urlArquivo) {
+    if (!urlArquivo) {
+        alert('URL do currículo indisponível.');
+        return;
+    }
+    window.open(urlArquivo, '_blank');
+}
+
+async function excluirCurriculo(curriculoId) {
+    if (!confirm('Tem certeza que deseja excluir este currículo?')) {
+        return;
+    }
+    try {
+        await apiRequest(`/api/curriculos/${curriculoId}`, { method: 'DELETE' });
+        await loadCurriculos(false);
+        showToast('Currículo excluído com sucesso.');
+    } catch (error) {
+        handleApiError(error, 'Erro ao excluir currículo.');
+    }
 }
 
 function renderCandidaturas(lista = candidaturas) {

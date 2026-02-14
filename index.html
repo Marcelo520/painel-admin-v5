@@ -51,6 +51,12 @@
                     <h3>Arquivo</h3>
                     <ul>
                         <li><a href="#" onclick="showPage('documentos')" class="nav-link">Documentos</a></li>
+                        <li>
+                            <a href="#" onclick="showPage('curriculos')" class="nav-link">
+                                Currículos
+                                <span id="nav-curriculos-alert" class="nav-alert-badge" style="display: none;">0</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -316,6 +322,34 @@
                                 </tr>
                             </thead>
                             <tbody id="documentos-tbody">
+                                <!-- Dados dinâmicos aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Página Currículos -->
+                <div id="page-curriculos" class="page">
+                    <div class="page-header">
+                        <div class="toolbar">
+                            <button class="btn btn-secondary" onclick="loadCurriculos()">Atualizar</button>
+                            <button class="btn btn-secondary" onclick="exportData('curriculos')">Exportar</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Arquivo</th>
+                                    <th>Data de envio</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="curriculos-tbody">
                                 <!-- Dados dinâmicos aqui -->
                             </tbody>
                         </table>
