@@ -31,6 +31,10 @@ const CANDIDATURAS_LAST_SEEN_KEY = 'candidaturasLastSeenId';
 let candidaturasLastSeenId = Number(localStorage.getItem(CANDIDATURAS_LAST_SEEN_KEY) || '0');
 const CURRICULOS_LAST_SEEN_KEY = 'curriculosLastSeenId';
 let curriculosLastSeenId = Number(localStorage.getItem(CURRICULOS_LAST_SEEN_KEY) || '0');
+const CLIENTES_LAST_SEEN_KEY = 'clientesLastSeenId';
+let clientesLastSeenId = Number(localStorage.getItem(CLIENTES_LAST_SEEN_KEY) || '0');
+const INSTALACOES_LAST_SEEN_KEY = 'instalacoesLastSeenId';
+let instalacoesLastSeenId = Number(localStorage.getItem(INSTALACOES_LAST_SEEN_KEY) || '0');
 
 let operadores = [];
 
@@ -209,12 +213,17 @@ async function loadClientes(showAlert = true) {
             status: (cliente.status || 'PENDENTE').toUpperCase()
         }));
         renderClientes();
+        if (currentPage === 'clientes') {
+            markClientesAsSeen();
+        } else {
+            updateClientesMenuAlert();
+        }
     } catch (error) {
         handleApiError(error, 'Erro ao carregar clientes.', showAlert);
     }
 }
 
-async function loadInstalacoes(showAlert = true) {
+async function loadInstalacoes(showAlert = true, includeProcesso = true) {
     try {
         const data = await apiRequest('/api/instalacoes');
         instalacoes = data.map((inst) => ({
@@ -231,31 +240,40 @@ async function loadInstalacoes(showAlert = true) {
             semLink: true
         }));
 
-        const processos = await Promise.all(
-            instalacoes.map(async (inst) => {
-                try {
-                    const processo = await apiRequest(`/api/clientes/${inst.clienteId}/processo-seletivo`, { method: 'GET' });
-                    return { clienteId: inst.clienteId, processo };
-                } catch (_) {
-                    return { clienteId: inst.clienteId, processo: null };
-                }
-            })
-        );
-        const processoByClienteId = new Map(processos.map((item) => [item.clienteId, item.processo]));
+        if (includeProcesso) {
+            const processos = await Promise.all(
+                instalacoes.map(async (inst) => {
+                    try {
+                        const processo = await apiRequest(`/api/clientes/${inst.clienteId}/processo-seletivo`, { method: 'GET' });
+                        return { clienteId: inst.clienteId, processo };
+                    } catch (_) {
+                        return { clienteId: inst.clienteId, processo: null };
+                    }
+                })
+            );
+            const processoByClienteId = new Map(processos.map((item) => [item.clienteId, item.processo]));
 
-        instalacoes = instalacoes.map((inst) => {
-            const processo = processoByClienteId.get(inst.clienteId);
-            const hasLink = Boolean(String(processo?.linkEntrevista || '').trim());
-            const emparelharAtivo = isEmparelharAtivo(processo?.status);
-            return {
-                ...inst,
-                semLink: !hasLink,
-                linkDesativado: hasLink && !emparelharAtivo
-            };
-        });
+            instalacoes = instalacoes.map((inst) => {
+                const processo = processoByClienteId.get(inst.clienteId);
+                const hasLink = Boolean(String(processo?.linkEntrevista || '').trim());
+                const emparelharAtivo = isEmparelharAtivo(processo?.status);
+                return {
+                    ...inst,
+                    semLink: !hasLink,
+                    linkDesativado: hasLink && !emparelharAtivo
+                };
+            });
+        }
 
-        renderInstalacoes();
+        if (currentPage === 'instalacoes' || currentPage === 'detalhe-instalacao') {
+            renderInstalacoes();
+        }
         updateInstalacaoOptions();
+        if (currentPage === 'instalacoes' || currentPage === 'detalhe-instalacao') {
+            markInstalacoesAsSeen();
+        } else {
+            updateInstalacoesMenuAlert();
+        }
     } catch (error) {
         handleApiError(error, 'Erro ao carregar instalacoes.', showAlert);
     }
@@ -610,6 +628,15 @@ function refreshCurrentPage() {
     if (currentPage !== 'curriculos') {
         loadCurriculos(false);
     }
+    // Mantém o alerta de clientes atualizado em qualquer tela do painel.
+    if (currentPage !== 'clientes') {
+        loadClientes(false);
+    }
+    // Mantém o alerta de instalações atualizado em qualquer tela do painel.
+    // Quando não estamos na tela de instalações, evita carregar detalhes de processo seletivo.
+    if (currentPage !== 'instalacoes' && currentPage !== 'detalhe-instalacao') {
+        loadInstalacoes(false, false);
+    }
 }
 
 function triggerRefreshSpin() {
@@ -684,7 +711,11 @@ function showPage(pageName) {
     currentPage = pageName;
 
     // Carga imediata ao entrar na pagina, sem esperar o ciclo de 5s
-    if (pageName === 'documentos') {
+    if (pageName === 'clientes') {
+        loadClientes(false);
+    } else if (pageName === 'instalacoes') {
+        loadInstalacoes(false);
+    } else if (pageName === 'documentos') {
         loadDocumentos(false);
     } else if (pageName === 'curriculos') {
         loadCurriculos(false);
@@ -1330,6 +1361,82 @@ async function loadCandidaturas(showAlert = true) {
     } catch (error) {
         handleApiError(error, 'Erro ao carregar candidaturas.', showAlert);
     }
+}
+
+function getClienteNumericId(cliente) {
+    const raw = Number(cliente?.id);
+    return Number.isFinite(raw) ? raw : 0;
+}
+
+function getMaxClienteId(lista = clientes) {
+    return lista.reduce((maxId, item) => {
+        const id = getClienteNumericId(item);
+        return id > maxId ? id : maxId;
+    }, 0);
+}
+
+function countUnseenClientes(lista = clientes) {
+    return lista.filter((item) => getClienteNumericId(item) > clientesLastSeenId).length;
+}
+
+function updateClientesMenuAlert() {
+    const badge = document.getElementById('nav-clientes-alert');
+    if (!badge) return;
+    const unseen = countUnseenClientes();
+    if (unseen > 0) {
+        badge.textContent = unseen > 99 ? '99+' : String(unseen);
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+    }
+}
+
+function markClientesAsSeen() {
+    const maxId = getMaxClienteId();
+    if (maxId > clientesLastSeenId) {
+        clientesLastSeenId = maxId;
+        localStorage.setItem(CLIENTES_LAST_SEEN_KEY, String(clientesLastSeenId));
+    }
+    updateClientesMenuAlert();
+}
+
+function getInstalacaoNumericId(instalacao) {
+    const raw = Number(instalacao?.id);
+    return Number.isFinite(raw) ? raw : 0;
+}
+
+function getMaxInstalacaoId(lista = instalacoes) {
+    return lista.reduce((maxId, item) => {
+        const id = getInstalacaoNumericId(item);
+        return id > maxId ? id : maxId;
+    }, 0);
+}
+
+function countUnseenInstalacoes(lista = instalacoes) {
+    return lista.filter((item) => getInstalacaoNumericId(item) > instalacoesLastSeenId).length;
+}
+
+function updateInstalacoesMenuAlert() {
+    const badge = document.getElementById('nav-instalacoes-alert');
+    if (!badge) return;
+    const unseen = countUnseenInstalacoes();
+    if (unseen > 0) {
+        badge.textContent = unseen > 99 ? '99+' : String(unseen);
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+    }
+}
+
+function markInstalacoesAsSeen() {
+    const maxId = getMaxInstalacaoId();
+    if (maxId > instalacoesLastSeenId) {
+        instalacoesLastSeenId = maxId;
+        localStorage.setItem(INSTALACOES_LAST_SEEN_KEY, String(instalacoesLastSeenId));
+    }
+    updateInstalacoesMenuAlert();
 }
 
 function getCandidaturaNumericId(candidatura) {

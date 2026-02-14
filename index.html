@@ -42,8 +42,18 @@
                 <div class="nav-section">
                     <h3>Operação</h3>
                     <ul>
-                        <li><a href="#" onclick="showPage('clientes')" class="nav-link active">Clientes</a></li>
-                        <li><a href="#" onclick="showPage('instalacoes')" class="nav-link">Instalações</a></li>
+                        <li>
+                            <a href="#" onclick="showPage('clientes')" class="nav-link active">
+                                Clientes
+                                <span id="nav-clientes-alert" class="nav-alert-badge" style="display: none;">0</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="showPage('instalacoes')" class="nav-link">
+                                Instalações
+                                <span id="nav-instalacoes-alert" class="nav-alert-badge" style="display: none;">0</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
