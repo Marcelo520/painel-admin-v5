@@ -571,6 +571,11 @@ function refreshCurrentPage() {
     } else if (currentPage === 'documentos') {
         loadDocumentos(false);
     }
+
+    // Mantém o alerta de candidaturas atualizado em qualquer tela do painel.
+    if (currentPage !== 'candidaturas') {
+        loadCandidaturas(false);
+    }
 }
 
 function triggerRefreshSpin() {
